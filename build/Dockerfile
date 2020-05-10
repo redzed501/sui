@@ -1,9 +1,11 @@
-FROM nginx:alpine
-LABEL maintainer="Jeroen Pardon"
+FROM golang:alpine as builder
+LABEL maintainer="Will Fantom"
+COPY . /app/
+WORKDIR /app
+RUN go mod download 
+RUN CGO_ENABLED=0 go build -o sui .
 
-RUN apk add nano
-
-RUN rm -rf /usr/share/nginx/html
-COPY . /usr/share/nginx/html
-
-EXPOSE 80
+FROM alpine
+COPY --from=builder /app/sui /app/
+WORKDIR /app
+CMD ["./sui"]
