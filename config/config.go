@@ -1,14 +1,18 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/kelseyhightower/envconfig"
 
 	log "github.com/sirupsen/logrus"
 )
 
 type Config struct {
-	DockerEnabled bool   `default:true`
-	TraefikURL    string `default:""`
+	DockerEnabled bool `default:true`
+	TraefikURL    map[string]string
+	TraefikUser   string `required:"false"`
+	TraefikPass   string `required:"false"`
 }
 
 var (
@@ -26,12 +30,16 @@ func IsDockerEnabled() bool {
 }
 
 func IsTraefikEnabled() bool {
-	if GlobalConfig.TraefikURL != "" {
-		return true
+	if GlobalConfig.TraefikURL != nil {
+		return false
 	}
-	return false
+	return true
 }
 
-func GetTraefikURL() string {
-	return GlobalConfig.TraefikURL
+func GetTraefikURL(name string) (string, error) {
+	value, ok := GlobalConfig.TraefikURL[name]
+	if !ok {
+		return "", fmt.Errorf("No traefik URL for instance %s", name)
+	}
+	return value, nil
 }
