@@ -80,7 +80,6 @@
             <h3>{{.Title}}</h3>
             <div id="apps_loop">
                 {{range .Apps}}
-                    {{if .Visible}}
                     <div class="apps_item">
                         <div class="apps_icon">
                             <span class="iconify icon" data-icon="mdi-{{.Icon}}"></span>
@@ -90,7 +89,6 @@
                             <span>{{.URL}}</span>
                         </div>
                     </div>
-                    {{end}}
                 {{end}}
             </div>
         </section>

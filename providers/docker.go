@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -46,6 +47,7 @@ func NewDockerProvider(placement uint8, path string) (*Provider, error) {
 	provider.Placement = placement
 	provider.Type = Docker
 	provider.Config = &dockerClient
+	provider.Apps = make(map[string]*App)
 
 	version, err := checkDockerVersion(dockerClient.Client)
 	if err != nil {
@@ -66,15 +68,24 @@ func fetchDockerApps(p *Provider) error {
 	}
 
 	containers := getContainerList(cnf.Client, true)
+	if containers == nil {
+		return fmt.Errorf("Could not fetch container list")
+	}
 	debugContainerList(containers)
+	containerListToApps(p, containers)
 	return nil
 }
 
 func getContainerList(client *http.Client, suiEnabled bool) []*dockerContainer {
 	var containers []*dockerContainer
 	response, err := requestFromSocket(client, "containers/json")
+	if err != nil {
+		log.Errorf("Failed to fetch container list from docker socket")
+		return nil
+	}
 	err = json.NewDecoder(response.Body).Decode(&containers)
 	if err != nil {
+		log.Errorf("Failed to decode container list from docker socket")
 		return nil
 	}
 	if !suiEnabled {
@@ -89,11 +100,52 @@ func getContainerList(client *http.Client, suiEnabled bool) []*dockerContainer {
 	return containers
 }
 
+func containerListToApps(provider *Provider, dcl []*dockerContainer) {
+	for _, container := range dcl {
+		//parse name from labels
+		name, ok := container.Labels[suiNameLabel]
+		if !ok {
+			if len(container.Name) > 0 {
+				name = container.Name[0][1:]
+			} else {
+				log.Errorf("An enabled container has no name!")
+				continue
+			}
+		}
+
+		//parse protected from labels
+		var protectBool bool
+		protect, ok := container.Labels[suiProtectedLabel]
+		if ok {
+			var err error
+			protectBool, err = strconv.ParseBool(protect)
+			if err != nil {
+				log.Errorf("Provided 'protect' (%s) value is not a bool!", protect)
+				continue
+			}
+		} else {
+			protectBool = false
+		}
+
+		//parse icon from labels
+		icon, ok := container.Labels[suiIconLabel]
+		if !ok {
+			icon = "application"
+		}
+
+		//parse URL from labels
+		URL, ok := container.Labels[suiURLLabel]
+		if !ok {
+			URL = "https://google.com"
+		}
+
+		provider.AddApp(name, icon, URL, protectBool)
+	}
+}
+
 func debugContainerList(dcl []*dockerContainer) {
 	if log.GetLevel() == log.DebugLevel {
-		for _, dc := range dcl {
-			log.Debugf("found container: %s\n", dc.Name[0][1:])
-		}
+
 	}
 }
 

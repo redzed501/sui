@@ -10,7 +10,7 @@ type ProviderConfig struct {
 }
 
 type IndexData struct {
-	Providers []providers.Provider
+	Providers []*providers.Provider
 	Query     []QueryEngines
 }
 

@@ -17,19 +17,22 @@ const (
 )
 
 var (
-	provs map[string]*providers.Provider
+	provs []*providers.Provider
 )
 
 func main() {
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.InfoLevel)
 	log.Infof("SUI - home server dashboard")
 
 	err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Problem loading config")
 	}
+	if config.IsDebug() {
+		log.SetLevel(log.DebugLevel)
+	}
 
-	provs = make(map[string]*providers.Provider)
+	provs = make([]*providers.Provider, config.GetProviderCount())
 	if config.IsDockerEnabled() {
 		loadDockerProvider()
 	}
@@ -49,7 +52,7 @@ func loadDockerProvider() {
 	if err != nil {
 		log.Fatalf("Could not connect to docker")
 	}
-	provs["docker"] = provider
+	provs[len(provs)-1] = provider
 }
 
 func refreshApps() {
@@ -65,7 +68,7 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Serving Index")
 	var t = template.Must(template.ParseFiles("./templates/index.html"))
 
-	err := t.Execute(w, IndexData{})
+	err := t.Execute(w, IndexData{Providers: provs})
 	if err != nil {
 		panic(err)
 	}
