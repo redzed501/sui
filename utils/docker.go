@@ -68,3 +68,28 @@ func GetLocalDockerVersionInfo() (*DockerVersionInfo, error) {
 	}
 	return versionInfo, nil
 }
+
+func GetLocalContainerList() (*ContainerList, error) {
+	response, err := LocalDockerSockRequest("containers/json")
+	if err != nil || response.StatusCode != 200 {
+		log.Errorf("Failed to fetch local docker container list")
+		return nil, err
+	}
+	var containerList *ContainerList
+	err = json.NewDecoder(response.Body).Decode(&containerList)
+	if err != nil {
+		log.Errorf("Docker container list could not be parsed\n")
+		return nil, err
+	}
+	return containerList, nil
+}
+
+func DockerOk() bool {
+	versionInfo, err := GetLocalDockerVersionInfo()
+	if err != nil {
+		log.Errorf("Docker Connection Not Avaliable")
+		return false
+	}
+	log.Debugf("Docker Connection Made\n\tdocker version: %s\n", versionInfo.Version)
+	return true
+}
