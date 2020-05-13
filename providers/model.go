@@ -1,6 +1,9 @@
 package providers
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 type ProviderType int
 
@@ -23,6 +26,12 @@ type App struct {
 	Icon    string
 	URL     string
 	Protect bool
+	Added   time.Time
+}
+
+type LostApp struct {
+	BaseApp *App
+	Lost    time.Time
 }
 
 func (p *Provider) FetchApps() error {
