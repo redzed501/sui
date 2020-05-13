@@ -7,26 +7,61 @@ import (
 )
 
 type Config struct {
-	DockerEnabled bool `default:"true" envconfig:"DOCKER"`
-	TraefikURL    map[string]string
-	TraefikUser   string   `required:"false"`
-	TraefikPass   string   `required:"false"`
-	Ignore        []string `required:"false" envconfig:"IGNORE"`
-	DEBUG         bool     `default:"false" envconfig:"DEBUG"`
+	TraefikURL   map[string]string
+	TraefikUser  map[string]string `required:"false"`
+	TraefikPass  map[string]string `required:"false"`
+	LocalTraefik string            `default:"" required:"false"`
+
+	Ignore []string `required:"false" envconfig:"IGNORE"`
+	DEBUG  bool     `default:"false" envconfig:"DEBUG"`
+}
+
+type TraefikConfig struct {
+	URL       string
+	auth      bool
+	user      string
+	pass      string
+	useDocker bool
 }
 
 var (
-	GlobalConfig Config
+	GlobalConfig   Config
+	traefikConfigs map[string]*TraefikConfig
 )
 
 func LoadConfig() error {
 	log.Debugf("Loading Config from ENV\n")
 	err := envconfig.Process("SUI", &GlobalConfig)
-	return err
+	if err != nil {
+		return err
+	}
+
+	traefikConfigs = make(map[string]*TraefikConfig)
+	for name, url := range GlobalConfig.TraefikURL {
+		var tc *TraefikConfig
+		tc.URL = url
+		user, ok := GlobalConfig.TraefikUser[name]
+		if ok {
+			tc.auth = true
+			tc.user = user
+			pass, ok := GlobalConfig.TraefikUser[name]
+			if ok {
+				tc.pass = pass
+			} else {
+				log.Errorf("Username but no password provided for Traefik Provider: %s", name)
+				continue
+			}
+			if GlobalConfig.LocalTraefik == name {
+				tc.useDocker = true
+			}
+			traefikConfigs[name] = tc
+		}
+	}
+	return nil
 }
 
-func IsDockerEnabled() bool {
-	return GlobalConfig.DockerEnabled
+func getTraefikConfigs() map[string]*TraefikConfig {
+	return traefikConfigs
 }
 
 func IsTraefikEnabled() bool {
@@ -34,19 +69,6 @@ func IsTraefikEnabled() bool {
 		return false
 	}
 	return true
-}
-
-func GetTraefikURLS() map[string]string {
-	return GlobalConfig.TraefikURL
-}
-
-func GetProviderCount() int {
-	count := 0
-	if IsDockerEnabled() {
-		count++
-	}
-	count += len(GetTraefikURLS())
-	return count
 }
 
 func IsDebug() bool {
