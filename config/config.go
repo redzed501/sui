@@ -9,10 +9,10 @@ import (
 )
 
 type Config struct {
-	DockerEnabled bool `default:true`
-	TraefikURL    map[string]string
-	TraefikUser   string `required:"false"`
-	TraefikPass   string `required:"false"`
+	Docker      bool `default:"true"`
+	TraefikURL  map[string]string
+	TraefikUser string `required:"false"`
+	TraefikPass string `required:"false"`
 }
 
 var (
@@ -26,7 +26,7 @@ func LoadConfig() error {
 }
 
 func IsDockerEnabled() bool {
-	return GlobalConfig.DockerEnabled
+	return GlobalConfig.Docker
 }
 
 func IsTraefikEnabled() bool {

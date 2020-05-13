@@ -35,14 +35,14 @@ type dockerContainer struct {
 	Labels map[string]string `json:"Labels"`
 }
 
-func NewDockerProvider(title string, placement uint8, path string) (*Provider, error) {
+func NewDockerProvider(placement uint8, path string) (*Provider, error) {
 
 	var dockerClient DockerProvider
 	dockerClient.Path = path
 	dockerClient.Client = createDockerClient(path)
 
 	var provider Provider
-	provider.Title = title
+	provider.Title = "docker"
 	provider.Placement = placement
 	provider.Type = Docker
 	provider.Config = &dockerClient
@@ -52,7 +52,7 @@ func NewDockerProvider(title string, placement uint8, path string) (*Provider, e
 		return nil, fmt.Errorf("Could not communicate with docker over path %s", path)
 	}
 
-	log.Infof("Added Docker Provider: %s\n", title)
+	log.Infof("Added Docker Provider\n")
 	log.Debugf("docker version: %s\n", version.Version)
 
 	return &provider, nil

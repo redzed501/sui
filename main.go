@@ -12,30 +12,53 @@ import (
 	"github.com/willfantom/sui/providers"
 )
 
+const (
+	dockerSock string = "/var/run/docker.sock"
+)
+
+var (
+	provs map[string]*providers.Provider
+)
+
 func main() {
 	log.SetLevel(log.DebugLevel)
 	log.Infof("SUI - home server dashboard")
 
 	err := config.LoadConfig()
 	if err != nil {
-		panic(err)
 		log.Fatalf("Problem loading config")
 	}
 
-	r := mux.NewRouter()
-
-	// Add Test Docker Provider for Testing
-	provider, err := providers.NewDockerProvider("test", 1, "/var/run/docker.sock")
-	if err != nil {
-		log.Panicf("Connection to provider failed\n")
+	provs = make(map[string]*providers.Provider)
+	if config.IsDockerEnabled() {
+		loadDockerProvider()
 	}
-	provider.FetchApps()
-	//
+
+	refreshApps()
+
+	r := mux.NewRouter()
 
 	serveAssets(r)
 	r.HandleFunc("/", serveIndex)
 
 	http.ListenAndServe(":80", r)
+}
+
+func loadDockerProvider() {
+	provider, err := providers.NewDockerProvider(0, dockerSock)
+	if err != nil {
+		log.Fatalf("Could not connect to docker")
+	}
+	provs["docker"] = provider
+}
+
+func refreshApps() {
+	for _, prov := range provs {
+		err := prov.FetchApps()
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) {
