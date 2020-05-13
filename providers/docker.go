@@ -15,6 +15,9 @@ const (
 	dockerAPIVersion  string = "v1.40"
 	suiEnabledLabel   string = "sui.enabled"
 	suiProtectedLabel string = "sui.protected"
+	suiURLLabel       string = "sui.url"
+	suiIconLabel      string = "sui.icon"
+	suiNameLabel      string = "sui.name"
 )
 
 type DockerProvider struct {
@@ -73,7 +76,7 @@ func fetchDockerApps(p *Provider) error {
 	}
 
 	for _, container := range containers {
-		log.Infoln(container.Name[0])
+		log.Infoln(container.Name[0][1:])
 		_, ok := container.Labels[suiEnabledLabel]
 		if ok {
 			if container.Labels[suiEnabledLabel] == "true" {

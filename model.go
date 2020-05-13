@@ -4,10 +4,6 @@ import (
 	"github.com/willfantom/sui/providers"
 )
 
-type Config struct {
-	Providers map[string]*providers.Provider
-}
-
 type ProviderConfig struct {
 	Name     string
 	Priority uint8

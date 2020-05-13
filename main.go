@@ -8,12 +8,20 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/willfantom/sui/config"
 	"github.com/willfantom/sui/providers"
 )
 
 func main() {
 	log.SetLevel(log.DebugLevel)
 	log.Infof("SUI - home server dashboard")
+
+	err := config.LoadConfig()
+	if err != nil {
+		panic(err)
+		log.Fatalf("Problem loading config")
+	}
+
 	r := mux.NewRouter()
 
 	// Add Test Docker Provider for Testing
@@ -22,6 +30,7 @@ func main() {
 		log.Panicf("Connection to provider failed\n")
 	}
 	provider.FetchApps()
+	//
 
 	serveAssets(r)
 	r.HandleFunc("/", serveIndex)
