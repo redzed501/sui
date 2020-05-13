@@ -59,34 +59,42 @@ func NewDockerProvider(placement uint8, path string) (*Provider, error) {
 }
 
 func fetchDockerApps(p *Provider) error {
-	log.Debugln("Fetching apps from docker provider")
+	log.Debugln("fetching apps from docker provider")
 	cnf, valid := p.Config.(*DockerProvider)
 	if !valid {
 		return errors.New("Docker provider has invalid config")
 	}
 
-	response, err := requestFromSocket(cnf.Client, "containers/json")
-	if err != nil {
-		panic(err)
-	}
-	var containers []dockerContainer
+	containers := getContainerList(cnf.Client, true)
+	debugContainerList(containers)
+	return nil
+}
+
+func getContainerList(client *http.Client, suiEnabled bool) []*dockerContainer {
+	var containers []*dockerContainer
+	response, err := requestFromSocket(client, "containers/json")
 	err = json.NewDecoder(response.Body).Decode(&containers)
 	if err != nil {
-		panic(err)
+		return nil
 	}
-
-	for _, container := range containers {
-		log.Infoln(container.Name[0][1:])
-		_, ok := container.Labels[suiEnabledLabel]
-		if ok {
-			if container.Labels[suiEnabledLabel] == "true" {
-				log.Debugf("Adding container to SUI")
-			}
+	if !suiEnabled {
+		return containers
+	}
+	for idx, container := range containers {
+		isEnabled, ok := container.Labels[suiEnabledLabel]
+		if !ok || isEnabled != "true" {
+			containers = append(containers[:idx], containers[idx+1:]...)
 		}
 	}
+	return containers
+}
 
-	log.Debugln("Collected apps from docker provider")
-	return nil
+func debugContainerList(dcl []*dockerContainer) {
+	if log.GetLevel() == log.DebugLevel {
+		for _, dc := range dcl {
+			log.Debugf("found container: %s\n", dc.Name[0][1:])
+		}
+	}
 }
 
 func checkDockerVersion(httpClient *http.Client) (dockerVersion, error) {
