@@ -6,12 +6,21 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/willfantom/sui/providers"
 )
 
 func main() {
-	fmt.Println("SUI - home server dashboard")
+	log.SetLevel(log.DebugLevel)
+	log.Infof("SUI - home server dashboard")
 	r := mux.NewRouter()
-	var i IndexData
+
+	// Add Test Docker Provider for Testing
+	_, err := providers.NewDockerProvider("test", 1, "/var/run/docker.sock")
+	if err != nil {
+		log.Panicf("Connection to provider failed\n")
+	}
 
 	serveAssets(r)
 	r.HandleFunc("/", serveIndex)
@@ -19,15 +28,11 @@ func main() {
 	http.ListenAndServe(":80", r)
 }
 
-func parseConfig() {
-
-}
-
 func serveIndex(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Serving Index")
 	var t = template.Must(template.ParseFiles("./templates/index.html"))
 
-	err := t.Execute(w, data)
+	err := t.Execute(w, IndexData{})
 	if err != nil {
 		panic(err)
 	}

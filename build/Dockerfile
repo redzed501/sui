@@ -12,4 +12,5 @@ COPY ./configs /app/configs
 COPY ./providers /app/providers
 COPY --from=builder /app/sui /app/
 WORKDIR /app
-CMD ["./sui"]
+ENTRYPOINT [ "./sui" ]
+CMD ["--provider.test.a.haha.lol"]
