@@ -17,10 +17,11 @@ func main() {
 	r := mux.NewRouter()
 
 	// Add Test Docker Provider for Testing
-	_, err := providers.NewDockerProvider("test", 1, "/var/run/docker.sock")
+	provider, err := providers.NewDockerProvider("test", 1, "/var/run/docker.sock")
 	if err != nil {
 		log.Panicf("Connection to provider failed\n")
 	}
+	provider.FetchApps()
 
 	serveAssets(r)
 	r.HandleFunc("/", serveIndex)

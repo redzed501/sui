@@ -12,7 +12,9 @@ import (
 )
 
 const (
-	dockerAPIVersion string = "v1.40"
+	dockerAPIVersion  string = "v1.40"
+	suiEnabledLabel   string = "sui.enabled"
+	suiProtectedLabel string = "sui.protected"
 )
 
 type DockerProvider struct {
@@ -25,6 +27,11 @@ type dockerVersion struct {
 	Os      string `json:"Os"`
 }
 
+type dockerContainer struct {
+	Name   []string          `json:"Names"`
+	Labels map[string]string `json:"Labels"`
+}
+
 func NewDockerProvider(title string, placement uint8, path string) (*Provider, error) {
 
 	var dockerClient DockerProvider
@@ -35,7 +42,7 @@ func NewDockerProvider(title string, placement uint8, path string) (*Provider, e
 	provider.Title = title
 	provider.Placement = placement
 	provider.Type = Docker
-	provider.Config = dockerClient
+	provider.Config = &dockerClient
 
 	version, err := checkDockerVersion(dockerClient.Client)
 	if err != nil {
@@ -49,10 +56,33 @@ func NewDockerProvider(title string, placement uint8, path string) (*Provider, e
 }
 
 func fetchDockerApps(p *Provider) error {
-	_, valid := p.Config.(*DockerProvider)
+	log.Debugln("Fetching apps from docker provider")
+	cnf, valid := p.Config.(*DockerProvider)
 	if !valid {
 		return errors.New("Docker provider has invalid config")
 	}
+
+	response, err := requestFromSocket(cnf.Client, "containers/json")
+	if err != nil {
+		panic(err)
+	}
+	var containers []dockerContainer
+	err = json.NewDecoder(response.Body).Decode(&containers)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, container := range containers {
+		log.Infoln(container.Name[0])
+		_, ok := container.Labels[suiEnabledLabel]
+		if ok {
+			if container.Labels[suiEnabledLabel] == "true" {
+				log.Debugf("Adding container to SUI")
+			}
+		}
+	}
+
+	log.Debugln("Collected apps from docker provider")
 	return nil
 }
 

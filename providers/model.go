@@ -15,11 +15,10 @@ type Provider struct {
 	Placement uint8
 	Type      ProviderType
 	Config    interface{}
-	Apps      []App
+	Apps      map[string]App
 }
 
 type App struct {
-	Name    string
 	Visible bool
 	Icon    string
 	URL     string
