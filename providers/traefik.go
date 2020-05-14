@@ -68,10 +68,14 @@ func (tp *TraefikProvider) GetApps(list map[string]*App) error {
 				}
 			}
 		}
+		toIgnore := false
 		for _, ignoreName := range tp.Ignore {
 			if strings.ToLower(name) == ignoreName {
-				continue
+				toIgnore = true
 			}
+		}
+		if toIgnore {
+			continue
 		}
 		app.URL = router.Domain
 		app.Icon = "application"
