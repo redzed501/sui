@@ -1,7 +1,6 @@
 package bookmarks
 
-type Bookmarks struct {
-	URL      string
-	Icon     string
-	Category string
+type Bookmark struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
 }

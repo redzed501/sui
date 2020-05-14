@@ -34,6 +34,7 @@ func main() {
 
 	addAppProviders()
 	addSearchEngines()
+	addBookmarks()
 
 	go refreshApps()
 
@@ -77,6 +78,14 @@ func addAppProviders() {
 func addSearchEngines() {
 	log.Debugf("adding search engines\n")
 	indexData.SearchEngines = config.GetSearchEngines()
+}
+
+func addBookmarks() {
+	log.Debugf("adding bookmarks\n")
+	indexData.Bookmarks = config.GetBookmarks()
+	for name, bmks := range indexData.Bookmarks {
+		log.Debugf("added bookmarks | category: %s | count: %d", name, len(*bmks))
+	}
 }
 
 

@@ -1,12 +1,12 @@
 package config
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 
-	"gopkg.in/square/go-jose.v2/json"
-
 	log "github.com/sirupsen/logrus"
+	"github.com/willfantom/sui/bookmarks"
 	"github.com/willfantom/sui/search"
 )
 
@@ -76,6 +76,10 @@ func GetTraefikCnfs() map[string]*TraefikConfig {
 
 func GetSearchEngines() map[string]*search.SearchEngine {
 	return cnf.SearchEngines
+}
+
+func GetBookmarks() map[string]*[]bookmarks.Bookmark {
+	return cnf.BookmarkCats
 }
 
 func GetAppRefresh() int {

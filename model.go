@@ -9,7 +9,7 @@ import (
 // IndexData is the data to be used in the template file
 type IndexData struct {
 	AppProviders  map[string]*providers.AppProvider
-	Bookmarks     map[string]*bookmarks.Bookmarks
+	Bookmarks     map[string]*[]bookmarks.Bookmark
 	SearchEngines map[string]*search.SearchEngine
 }
 
@@ -19,7 +19,7 @@ type IndexData struct {
 func NewIndexData() *IndexData {
 	return &IndexData{
 		AppProviders:  make(map[string]*providers.AppProvider),
-		Bookmarks:     make(map[string]*bookmarks.Bookmarks),
+		Bookmarks:     make(map[string]*[]bookmarks.Bookmark),
 		SearchEngines: make(map[string]*search.SearchEngine),
 	}
 }

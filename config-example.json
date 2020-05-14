@@ -41,5 +41,23 @@
       "prefix": "d"
     }
   },
+  "bookmarks": {
+    "social": [
+      {
+        "name": "telegram-web",
+        "url": "https://web.telegram.org"
+      },
+      {
+        "name": "facebook",
+        "url": "https://messenger.com"
+      }
+    ],
+    "music": [
+      {
+        "name": "spotify",
+        "url": "https://listen.spotify.com"
+      }
+    ]
+  },
   "app_refresh": 300
 }

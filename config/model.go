@@ -1,6 +1,9 @@
 package config
 
-import "github.com/willfantom/sui/search"
+import (
+	"github.com/willfantom/sui/bookmarks"
+	"github.com/willfantom/sui/search"
+)
 
 type DockerType uint8
 
@@ -10,12 +13,13 @@ const (
 )
 
 type Config struct {
-	AppTitle       string                    `json:"title"`
-	Debug          bool                      `json:"debug"`
-	AppRefresh     int                       `json:"app_refresh"`
-	DockerConfigs  map[string]*DockerConfig  `json:"dockers"`
-	TraefikConfigs map[string]*TraefikConfig `json:"traefiks"`
-	SearchEngines  map[string]*search.SearchEngine `json:"engines"`
+	AppTitle       string                           `json:"title"`
+	Debug          bool                             `json:"debug"`
+	AppRefresh     int                              `json:"app_refresh"`
+	DockerConfigs  map[string]*DockerConfig         `json:"dockers"`
+	TraefikConfigs map[string]*TraefikConfig        `json:"traefiks"`
+	SearchEngines  map[string]*search.SearchEngine  `json:"engines"`
+	BookmarkCats   map[string]*[]bookmarks.Bookmark `json:"bookmarks"`
 }
 
 type DockerConfig struct {
@@ -41,5 +45,7 @@ func NewConfig() *Config {
 		AppRefresh:     300,
 		DockerConfigs:  make(map[string]*DockerConfig),
 		TraefikConfigs: make(map[string]*TraefikConfig),
+		SearchEngines:  make(map[string]*search.SearchEngine),
+		BookmarkCats:   make(map[string]*[]bookmarks.Bookmark),
 	}
 }

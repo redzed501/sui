@@ -78,7 +78,7 @@
         {{ if $Provider.Protected }}
         {{else}}
         <section id="apps">
-            <script type="text/handlebars-template" id="apps-template"></script>
+            <!-- <script type="text/handlebars-template" id="apps-template"></script> -->
             <h3>{{$PName}}</h3>
             <div id="apps_loop">
                 {{range $ATitle, $App := $Provider.Apps}}
@@ -99,6 +99,22 @@
         </section>
         {{end}}
         {{end}}
+
+        <section id="links">
+            <!-- <script type="text/handlebars-template" id="links-template"> -->
+            <h3>Bookmarks</h3>
+            <div id="links_loop">
+                {{range $CatName, $Bmks := .Bookmarks}}
+                    <div id="links_item">
+                        <h4>{{$CatName}}</h4>
+                        {{range $Bmks}}
+                            <a href="{{.URL}}" class="theme_color-border theme_text-select">{{.Name}}</a>
+                        {{end}}
+                    </div>
+                {{end}}
+            </div>    
+            </script>
+        </section>
 
 
         
