@@ -29,4 +29,10 @@ var iconDefault = map[string]string{
 		"plex": "plex",
 		"emby": "play-box",
 		"jellyfin": "play-box",
+		"portainer": "docker",
+		"traefik-sso-fw": "lock",
+		"gotify": "bell",
+		"notify": "bell",
+		"gitea": "git",
+		"git": "git",
 	}
