@@ -17,5 +17,5 @@ build:
     - triggers
   script:
     - docker pull ${DOCKER_IMG}:${CI_COMMIT_REF_NAME} || true
-    - docker build -f build/Dockerfile --rm --compress .
+    - docker build -f build/Dockerfile --rm --compress -t ${DOCKER_IMG}:${CI_COMMIT_REF_NAME} .
     - docker push ${DOCKER_IMG}:${CI_COMMIT_REF_NAME}
