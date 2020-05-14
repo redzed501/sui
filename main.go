@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"text/template"
+	"time"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -34,7 +35,7 @@ func main() {
 	addAppProviders()
 	addSearchEngines()
 
-	refreshApps()
+	go refreshApps()
 
 	r := mux.NewRouter()
 
@@ -79,12 +80,15 @@ func addSearchEngines() {
 
 
 func refreshApps() {
-	for name, prov := range indexData.AppProviders {
-		err := prov.RefreshApps()
-		if err != nil {
-			panic(err)
+	for true {
+		for name, prov := range indexData.AppProviders {
+			err := prov.RefreshApps()
+			if err != nil {
+				panic(err)
+			}
+			log.Debugf("found apps | provider: %s | app count: %d", name, len(prov.Apps))
 		}
-		log.Debugf("found apps | provider: %s | app count: %d", name, len(prov.Apps))
+		time.Sleep(time.Duration(config.GetAppRefresh())*time.Second)
 	}
 }
 
