@@ -11,80 +11,69 @@
  - Docker: [Linux](https://docs.docker.com/install/linux/docker-ce/debian/), [Mac](https://hub.docker.com/editions/community/docker-ce-desktop-mac), [Windows](https://hub.docker.com/editions/community/docker-ce-desktop-windows)
  - [Docker-compose](https://docs.docker.com/compose/install/) 
 
-#### Install:
+### Configuration
 
- - `git clone` this repository
- - Build and bring up with `docker-compose up -d`
- - The page should be available at  `http://localhost:4000` 
+This version of SUI is designed to pull the apps list from an external provider.
 
-To run at a different port open edit docker-compose.yml:
+Currently supported providers are:
+ - Docker (via socket, tcp is a todo)
+ - Træfik (via API) 
 
-    ports:
-          - 4000:80
+#### Provider | Docker
+
+This provider is the simplest to use. Simply modify the config JSON adding the path and type. Currently only type `socket` is supported, but `TCP` will be added some day...
+
+example:
+```json
+{
+   ...
+   "dockers": {
+      "local": {
+         "type": "socket",
+         "path": "/var/run/docker.sock"
+      }
+   }
+   ...
+}
+```
+
+You must of course also mount the docker socket (as read-only).
+Once this has been added, you can add labels to you containers (best via docker-compose files) that modify their sui behaviour, for example:
+ - `sui.protected=true` will hide the service from the dashboard
+ - `sui.name=Example` will set the application's name to `Example`
+ - `sui.url=https://a.example.tld` will link the application to the given value
+ - `sui.icon=application` will set the apps icon to `application` (see [here](https://materialdesignicons.com/))
+
+#### Provider | Træfik
+
+This provider uses the træfik API to determine what services are running. You can add a træfik provider to you SUI though the configuration JSON, for example:
+
+```json
+{
+   ...
+   "traefiks": {
+      "example": {
+         "url": "https://traefik.example.tld",
+         "user": "myusername",
+         "pass": "securatah",
+         "ignored": "PROMETHEUS@INTERNAL NOOP@INTERNAL API@INTERNAL",
+         "docker": "local"
+      }
+   }
+   ...
+}
+```
+
+- `url` specifies the URL of the target træfik instance
+- `ignored` specifies service names to ignore from the apps list (separated by `' '`)
+- `docker` can specify extra values from docker labels if have a docker provider also
+If basic auth is enabled on the Træfik endpoint:
+- `user` and `pass` specify the credentials for basic auth
 
 ### Customization
 
 #### Changing color themes
  - Click the options button on the left bottom
-
-#### Apps
-Add your apps by editing apps.json:
-
-    {
-	    "apps" : [
-		    {"name":"Name of app 1","url":"sub1.example.com","icon":"icon-name"},
-		    {"name":"Name of app 2","url":"sub2.example.com","icon":"icon-name"}
-	    ]
-    }
-
-Please note:
-
- - No `http://` in the URL
- - No `,` at the end of the last app's line
- - Find the names  of icons to use at [Material Design Icons](https://materialdesignicons.com/)
-
-#### Bookmarks
-Add your bookmarks by editing links.json:
-
-```
-{  
-   "bookmarks":[  
-      {  
-         "category":"Category1",
-         "links":[  
-            {  
-               "name":"Link1",
-               "url":"http://example.com"
-            },
-            {  
-               "name":"Link2",
-               "url":"http://example.com"
-            }
-         ]
-      },
-      {  
-         "category":"Category2",
-         "links":[  
-            {  
-               "name":"Link1",
-               "url":"http://example.com"
-            },
-            {  
-               "name":"Link2",
-               "url":"http://example.com"
-            }
-         ]
-      }
-   ]
-}
-```
-Add names for the categories you wish to define and add the bookmarks for each category.
-
-Please note:
-
- - No `http://` in the URL
- - No `,` at the end of the last bookmark in a category and at the end of the last category
-
 
 #### Color themes
 These can be added or customized in the themer.js file. When changing the name of a theme or adding one, make sure to edit this section in index.html accordingly:
