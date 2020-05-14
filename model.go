@@ -1,21 +1,25 @@
 package main
 
 import (
+	"github.com/willfantom/sui/bookmarks"
 	"github.com/willfantom/sui/providers"
+	"github.com/willfantom/sui/search"
 )
 
-type ProviderConfig struct {
-	Name     string
-	Priority uint8
-}
-
+// IndexData is the data to be used in the template file
 type IndexData struct {
-	Providers []*providers.Provider
-	Query     []QueryEngines
+	AppProviders  map[string]*providers.AppProvider
+	Bookmarks     map[string]*bookmarks.Bookmarks
+	SearchEngines map[string]*search.SearchEngine
 }
 
-type QueryEngines struct {
-	URL    string
-	Name   string
-	Prefix string
+// NewIndexData creates a new IndexData...
+// Creates the required maps
+// Returns a pointer to the the created indexdata
+func NewIndexData() *IndexData {
+	return &IndexData{
+		AppProviders:  make(map[string]*providers.AppProvider),
+		Bookmarks:     make(map[string]*bookmarks.Bookmarks),
+		SearchEngines: make(map[string]*search.SearchEngine),
+	}
 }

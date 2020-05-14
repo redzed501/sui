@@ -1,10 +1,79 @@
 package config
 
 import (
-	"github.com/kelseyhightower/envconfig"
+	"os"
+	"strings"
+
+	"gopkg.in/square/go-jose.v2/json"
 
 	log "github.com/sirupsen/logrus"
 )
+
+var (
+	cnf *Config
+)
+
+const (
+	cnfFilePath string = "/sui/config.json"
+)
+
+func LoadConfig() error {
+	cnf = NewConfig()
+
+	//File
+	loadFromFile(cnfFilePath)
+	//ENV
+	// ARGS
+
+	parseConfig()
+	return nil
+}
+
+func loadFromFile(path string) {
+	cnfFile, err := os.Open(path)
+	if err != nil {
+		log.Errorf("no config file found at %s", path)
+		return
+	}
+	defer cnfFile.Close()
+	err = json.NewDecoder(cnfFile).Decode(cnf)
+	if err != nil {
+		log.Errorf("config file could not be parsed | %s", path)
+		return
+	}
+}
+
+func parseConfig() {
+	for name, c := range cnf.DockerConfigs {
+		if c.CnfDType == "socket" {
+			cnf.DockerConfigs[name].DType = Socket
+		} else if c.CnfDType == "tcp" {
+			cnf.DockerConfigs[name].DType = TCP
+		} else {
+			log.Errorf("invaid docker type for %s\n", name)
+			delete(cnf.DockerConfigs, name)
+		}
+	}
+	for name, c := range cnf.TraefikConfigs {
+		if c.CnfIgnoredList != "" {
+			cnf.TraefikConfigs[name].IgnoredList = strings.Split(strings.ToLower(c.CnfIgnoredList), " ")
+		}
+	}
+}
+
+func IsDebug() bool {
+	return cnf.Debug
+}
+
+func GetDockerCnfs() map[string]*DockerConfig {
+	return cnf.DockerConfigs
+}
+
+func GetTraefikCnfs() map[string]*TraefikConfig {
+	return cnf.TraefikConfigs
+}
+
+/*
 
 type Config struct {
 	TraefikURL   map[string]string
@@ -18,16 +87,24 @@ type Config struct {
 
 type TraefikConfig struct {
 	URL       string
-	auth      bool
-	user      string
-	pass      string
-	useDocker bool
+	Auth      bool
+	User      string
+	Pass      string
+	UseDocker bool
 }
+
+const (
+	URLPrefix string = "https://"
+)
 
 var (
 	GlobalConfig   Config
-	traefikConfigs map[string]*TraefikConfig
+	traefikConfigs map[string]*TraefikConfig = make(map[string]*TraefikConfig)
 )
+
+
+func
+
 
 func LoadConfig() error {
 	log.Debugf("Loading Config from ENV\n")
@@ -36,41 +113,63 @@ func LoadConfig() error {
 		return err
 	}
 
-	traefikConfigs = make(map[string]*TraefikConfig)
+	fmt.Println("map:", GlobalConfig.TraefikURL)
 	for name, url := range GlobalConfig.TraefikURL {
-		var tc *TraefikConfig
-		tc.URL = url
+		log.Infof("Adding Provider: %s", name)
+		var tc TraefikConfig
+		tc.URL = URLPrefix + url
 		user, ok := GlobalConfig.TraefikUser[name]
 		if ok {
-			tc.auth = true
-			tc.user = user
-			pass, ok := GlobalConfig.TraefikUser[name]
+			tc.Auth = true
+			tc.User = user
+			pass, ok := GlobalConfig.TraefikPass[name]
 			if ok {
-				tc.pass = pass
+				tc.Pass = pass
 			} else {
 				log.Errorf("Username but no password provided for Traefik Provider: %s", name)
 				continue
 			}
 			if GlobalConfig.LocalTraefik == name {
-				tc.useDocker = true
+				tc.UseDocker = true
 			}
-			traefikConfigs[name] = tc
 		}
+		traefikConfigs[name] = &tc
 	}
 	return nil
 }
 
-func getTraefikConfigs() map[string]*TraefikConfig {
+func LoadConfigTest() error {
+	log.Debugf("Loading Config from ENV\n")
+	err := envconfig.Process("SUI", &GlobalConfig)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Adding Provider: TEST")
+	var tc TraefikConfig
+	tc.URL = URLPrefix + "traefik.fantom.host"
+	tc.User = "fantom"
+	tc.Pass = "0FK.yhip17mB>}oJ"
+	tc.UseDocker = true
+	traefikConfigs["TEST"] = &tc
+	return nil
+}
+
+func GetTraefikConfigs() map[string]*TraefikConfig {
 	return traefikConfigs
 }
 
 func IsTraefikEnabled() bool {
 	if GlobalConfig.TraefikURL != nil {
-		return false
+		return true
 	}
-	return true
+	return false
+}
+
+func GetProviderCount() int {
+	return len(traefikConfigs)
 }
 
 func IsDebug() bool {
 	return GlobalConfig.DEBUG
-}
+}*/

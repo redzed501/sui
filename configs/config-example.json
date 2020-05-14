@@ -1,0 +1,39 @@
+{
+  "title": "example title",
+  "debug": true,
+  "dockers": {
+    "local": {
+      "type": "socket",
+      "path": "/var/run/docker.sock"
+    },
+    "external-a": {
+      "type": "tcp",
+      "path": "123.123.123.123:4567",
+      "user": "testUser",
+      "pass": "testPass"
+    }
+  },
+  "traefiks": {
+    "main": {
+      "url": "https://traefik.example.tld",
+      "user": "testUser",
+      "pass": "testPass",
+      "docker": "local",
+      "ignored": "ignoreme ignoremetoo"
+    },
+    "noDocker": {
+      "url": "https://traefik.exampletwo.tld",
+      "user": "testUser2",
+      "pass": "testPass2",
+      "ignored": "ignoreme ignoremetoo"
+    },
+    "externalDocker": {
+      "url": "https://traefik.examplethree.tld",
+      "user": "testUser2",
+      "pass": "testPass2",
+      "docker": "external-a",
+      "ignored": "ignoreme ignoremetoo"
+    }
+  },
+  "app_refresh": 300
+}

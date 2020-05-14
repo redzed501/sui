@@ -3,177 +3,188 @@ package providers
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
+
+	"github.com/willfantom/sui/config"
 )
 
 const (
-	dockerAPIVersion  string = "v1.40"
-	suiEnabledLabel   string = "sui.enabled"
-	suiProtectedLabel string = "sui.protected"
-	suiURLLabel       string = "sui.url"
-	suiIconLabel      string = "sui.icon"
-	suiNameLabel      string = "sui.name"
+	dockerAPIVersion string = "v1.40"
+	nameFromLabel    string = "sui.name"
+	iconFromLabel    string = "sui.icon"
+	urlFromLabel     string = "sui.url"
+	protecFromLabel  string = "sui.protect"
 )
 
 type DockerProvider struct {
-	Path   string
 	Client *http.Client
+	User   string
+	Pass   string
 }
 
-type dockerVersion struct {
+type ContainerInfo struct {
+	ID     string            `json:"Id"`
+	Names  []string          `json:"Names"`
+	Image  string            `json:"Image"`
+	State  string            `json:"State"`
+	Labels map[string]string `json:"Labels"`
+}
+
+type DockerVersionInfo struct {
 	Version string `json:"Version"`
 	Os      string `json:"Os"`
 }
 
-type dockerContainer struct {
-	Name   []string          `json:"Names"`
-	Labels map[string]string `json:"Labels"`
-}
+func NewDockerProvider(cnf *config.DockerConfig) (*AppProvider, error) {
+	ap := newAppProvider()
+	ap.PType = Docker
 
-func NewDockerProvider(placement uint8, path string) (*Provider, error) {
-
-	var dockerClient DockerProvider
-	dockerClient.Path = path
-	dockerClient.Client = createDockerClient(path)
-
-	var provider Provider
-	provider.Title = "docker"
-	provider.Placement = placement
-	provider.Type = Docker
-	provider.Config = &dockerClient
-	provider.Apps = make(map[string]*App)
-
-	version, err := checkDockerVersion(dockerClient.Client)
+	var dp DockerProvider
+	client, err := createDockerClient(cnf.Path, cnf.DType)
 	if err != nil {
-		return nil, fmt.Errorf("Could not communicate with docker over path %s", path)
+		return nil, fmt.Errorf("could not create docker app provider")
 	}
+	dp.Client = client
+	dp.User = cnf.User
+	dp.Pass = cnf.Pass
 
-	log.Infof("Added Docker Provider\n")
-	log.Debugf("docker version: %s\n", version.Version)
+	ap.TypeConfig = &dp
 
-	return &provider, nil
+	if !dp.TestDockerConn() {
+		return nil, fmt.Errorf("could not create docker app provider")
+	}
+	return ap, nil
 }
 
-func fetchDockerApps(p *Provider) error {
-	log.Debugln("fetching apps from docker provider")
-	cnf, valid := p.Config.(*DockerProvider)
-	if !valid {
-		return errors.New("Docker provider has invalid config")
+func (dp *DockerProvider) GetApps(list map[string]*App) error {
+
+	containers, err := dp.GetContainerList()
+	if err != nil {
+		return err
+	}
+	for _, container := range containers {
+
+		app := newApp()
+
+		var name string
+		if len(container.Names) > 0 {
+			name = container.Names[0][1:]
+		}
+		labelName, exist := container.Labels[nameFromLabel]
+		if exist {
+			name = labelName
+		}
+		labelIcon, exist := container.Labels[iconFromLabel]
+		if exist {
+			app.Icon = labelIcon
+		}
+		labelUrl, exist := container.Labels[urlFromLabel]
+		if exist {
+			app.URL = labelUrl
+		}
+		labelProtec, exist := container.Labels[protecFromLabel]
+		if exist {
+			labelProtecBool, err := strconv.ParseBool(labelProtec)
+			if err != nil {
+				log.Errorf("Provided 'protect' (%s) value is not a bool!", labelProtec)
+				continue
+			}
+			app.Protected = labelProtecBool
+		}
+		list[name] = app
 	}
 
-	containers := getContainerList(cnf.Client, true)
-	if containers == nil {
-		return fmt.Errorf("Could not fetch container list")
-	}
-	debugContainerList(containers)
-	containerListToApps(p, containers)
 	return nil
 }
 
-func getContainerList(client *http.Client, suiEnabled bool) []*dockerContainer {
-	var containers []*dockerContainer
-	response, err := requestFromSocket(client, "containers/json")
+func (dp *DockerProvider) TestDockerConn() bool {
+	version, err := dp.GetDockerVersion()
 	if err != nil {
-		log.Errorf("Failed to fetch container list from docker socket")
-		return nil
+		return false
 	}
-	err = json.NewDecoder(response.Body).Decode(&containers)
-	if err != nil {
-		log.Errorf("Failed to decode container list from docker socket")
-		return nil
-	}
-	if !suiEnabled {
-		return containers
-	}
-	for idx, container := range containers {
-		isEnabled, ok := container.Labels[suiEnabledLabel]
-		if !ok || isEnabled != "true" {
-			containers = append(containers[:idx], containers[idx+1:]...)
-		}
-	}
-	return containers
+	log.Debugf("docker version found: %s", version.Version)
+	return true
 }
 
-func containerListToApps(provider *Provider, dcl []*dockerContainer) {
-	for _, container := range dcl {
-		//parse name from labels
-		name, ok := container.Labels[suiNameLabel]
-		if !ok {
-			if len(container.Name) > 0 {
-				name = container.Name[0][1:]
-			} else {
-				log.Errorf("An enabled container has no name!")
-				continue
-			}
-		}
+func (dp *DockerProvider) GetContainerList() ([]*ContainerInfo, error) {
+	response, err := requestFromDocker(dp.Client, "containers/json")
+	if err != nil || response.StatusCode != 200 {
+		log.Errorf("failed to fetch local docker container list")
+		return nil, err
+	}
+	var containerList []*ContainerInfo
+	err = json.NewDecoder(response.Body).Decode(&containerList)
+	if err != nil {
+		log.Errorf("docker container list could not be parsed")
+		return nil, err
+	}
+	return containerList, nil
+}
 
-		//parse protected from labels
-		var protectBool bool
-		protect, ok := container.Labels[suiProtectedLabel]
-		if ok {
-			var err error
-			protectBool, err = strconv.ParseBool(protect)
-			if err != nil {
-				log.Errorf("Provided 'protect' (%s) value is not a bool!", protect)
-				continue
-			}
+func (dp *DockerProvider) GetLocalContainerInfo(name string) (*ContainerInfo, error) {
+	response, err := requestFromDocker(dp.Client, fmt.Sprintf("containers/%s/json", name))
+	if err != nil || response.StatusCode != 200 {
+		log.Errorf("failed to fetch local docker container info")
+		return nil, err
+	}
+	var containerInfo *ContainerInfo
+	err = json.NewDecoder(response.Body).Decode(&containerInfo)
+	if err != nil {
+		log.Errorf("docker container info could not be parsed")
+		return nil, err
+	}
+	return containerInfo, nil
+}
+
+func (dp *DockerProvider) GetDockerVersion() (*DockerVersionInfo, error) {
+	response, err := requestFromDocker(dp.Client, "version")
+	if err != nil || response.StatusCode != 200 {
+		log.Errorf("failed to fetch local docker version")
+		return nil, err
+	}
+	var versionInfo *DockerVersionInfo
+	err = json.NewDecoder(response.Body).Decode(&versionInfo)
+	if err != nil {
+		log.Errorf("docker version info could not be parsed\n")
+		return nil, err
+	}
+	return versionInfo, nil
+}
+
+func createDockerClient(path string, dType config.DockerType) (*http.Client, error) {
+	typeString := "tcp"
+	if dType == config.Socket {
+		if _, err := os.Stat(path); err == nil {
+			log.Debugf("docker socket path found :)")
+			typeString = "unix"
+		} else if os.IsNotExist(err) {
+			log.Errorf("you must mount the docker socket (%s)\n", path)
+			return nil, fmt.Errorf("docker socket is not mounted (correctly)")
 		} else {
-			protectBool = false
-		}
-
-		//parse icon from labels
-		icon, ok := container.Labels[suiIconLabel]
-		if !ok {
-			icon = "application"
-		}
-
-		//parse URL from labels
-		URL, ok := container.Labels[suiURLLabel]
-		if !ok {
-			URL = "https://google.com"
-		}
-
-		provider.AddApp(name, icon, URL, protectBool)
-	}
-}
-
-func debugContainerList(dcl []*dockerContainer) {
-	if log.GetLevel() == log.DebugLevel {
-
-	}
-}
-
-func checkDockerVersion(httpClient *http.Client) (dockerVersion, error) {
-	response, err := requestFromSocket(httpClient, "version")
-	if err == nil {
-		var version dockerVersion
-		err = json.NewDecoder(response.Body).Decode(&version)
-		if err == nil {
-			return version, nil
+			log.Errorf("can not find the docker socket (%s)\n", path)
+			return nil, fmt.Errorf("docker socket not found")
 		}
 	}
-	return dockerVersion{}, err
-}
-
-func createDockerClient(path string) *http.Client {
 	httpClient := http.Client{
 		Transport: &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", path)
+				return net.Dial(typeString, path)
 			},
 		},
 	}
-	return &httpClient
+	return &httpClient, nil
 }
 
-func requestFromSocket(httpClient *http.Client, path string) (*http.Response, error) {
+func requestFromDocker(c *http.Client, path string) (*http.Response, error) {
+	//TODO: Convert Get to Do to add Basic Auth
+	//TODO: Allow non Localhost host to be used
 	path = fmt.Sprintf("http://127.0.0.1/%s/%s", dockerAPIVersion, path)
-	response, err := httpClient.Get(path)
+	response, err := c.Get(path)
 	return response, err
 }
