@@ -38,7 +38,7 @@
   "engines": {
     "duckduckgo": {
       "url": "https://duckduckgo.com/?q=",
-      "prefix": "/d"
+      "prefix": "d"
     }
   },
   "app_refresh": 300
