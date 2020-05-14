@@ -43,7 +43,7 @@ func main() {
 	r.HandleFunc("/", serveIndex)
 	r.HandleFunc("/js/search.js", serveSearchJS)
 
-	http.ListenAndServe(":80", r)
+	http.ListenAndServe(":6999", r)
 }
 
 func addAppProviders() {
