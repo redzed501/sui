@@ -62,22 +62,6 @@ function search(text) {
                     break;
                 {{end}}
             }
-        } else {
-            var option = text.substr(1);
-            switch (option) {
-                case "d":
-                    window.location = "https://www.dukduckgo.com";
-                    break;
-                case "y":
-                    window.location = "https://www.youtube.com";
-                    break;
-                case "r":
-                    window.location = "https://reddit.com";
-                    break;
-                case "s":
-                    window.location = "https://open.spotify.com";
-                    break;
-            }
         }
     } else if (validURL(text)) {
         if (containsProtocol(text))
@@ -85,7 +69,7 @@ function search(text) {
         else
             window.location = "https://" + text;
     } else {
-        window.location = "https://www.google.com/search?q=" + text;
+        window.location = "https://duckduckgo.com/?q=" + text;
     }
 }
 
