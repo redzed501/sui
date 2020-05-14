@@ -78,7 +78,7 @@ func (tp *TraefikProvider) GetApps(list map[string]*App) error {
 			continue
 		}
 		app.URL = router.Domain
-		app.Icon = "application"
+		app.Icon = getDefaultIcon(name)
 		app.Protected = false
 		if tp.Docker != nil {
 			ci, err := tp.Docker.GetLocalContainerInfo(router.Name)

@@ -83,6 +83,8 @@ func (dp *DockerProvider) GetApps(list map[string]*App) error {
 		labelIcon, exist := container.Labels[iconFromLabel]
 		if exist {
 			app.Icon = labelIcon
+		} else {
+			app.Icon = getDefaultIcon(name)
 		}
 		labelUrl, exist := container.Labels[urlFromLabel]
 		if exist {

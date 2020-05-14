@@ -22,3 +22,11 @@ func (ap *AppProvider) RefreshApps() error {
 	
 	return nil
 }
+
+func getDefaultIcon(name string) string {
+	_, exist := iconDefault[name]
+	if exist {
+		return iconDefault[name]
+	}
+	return "application"
+}
