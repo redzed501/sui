@@ -26,7 +26,7 @@ var iconDefault = map[string]string{
 		"influxdb": "chart-bar-stacked",
 		"telegraf": "chart-bar-stacked",
 		"grafana": "chart-bar-stacked",
-		"plex": "play-box",
+		"plex": "plex",
 		"emby": "play-box",
 		"jellyfin": "play-box",
 	}
