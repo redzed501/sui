@@ -1,0 +1,21 @@
+image: docker:stable
+
+stages:
+  - build
+
+variables:
+  DOCKER_IMG: ${DOCKER_REGISTRY}/${DOCKER_REGISTRY_USER}/${PROJECT}
+
+before_script:
+  - docker login --username ${DOCKER_REGISTRY_USER} --password ${DOCKER_REGISTRY_PASSWORD} ${DOCKER_REGISTRY}
+
+build:
+  stage: build
+  services:
+    - name: docker:stable-dind
+  except:
+    - triggers
+  script:
+    - docker pull ${DOCKER_IMG}:${CI_COMMIT_REF_NAME} || true
+    - docker build -f build/Dockerfile --rm --compress .
+    - docker push ${DOCKER_IMG}:${CI_COMMIT_REF_NAME}
