@@ -1,5 +1,7 @@
 package config
 
+import "github.com/willfantom/sui/search"
+
 type DockerType uint8
 
 const (
@@ -13,6 +15,7 @@ type Config struct {
 	AppRefresh     int                       `json:"app_refresh"`
 	DockerConfigs  map[string]*DockerConfig  `json:"dockers"`
 	TraefikConfigs map[string]*TraefikConfig `json:"traefiks"`
+	SearchEngines  map[string]*search.SearchEngine `json:"engines"`
 }
 
 type DockerConfig struct {

@@ -7,6 +7,7 @@ import (
 	"gopkg.in/square/go-jose.v2/json"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/willfantom/sui/search"
 )
 
 var (
@@ -71,6 +72,10 @@ func GetDockerCnfs() map[string]*DockerConfig {
 
 func GetTraefikCnfs() map[string]*TraefikConfig {
 	return cnf.TraefikConfigs
+}
+
+func GetSearchEngines() map[string]*search.SearchEngine {
+	return cnf.SearchEngines
 }
 
 /*

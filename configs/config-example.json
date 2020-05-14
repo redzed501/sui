@@ -35,5 +35,11 @@
       "ignored": "ignoreme ignoremetoo"
     }
   },
+  "engines": {
+    "duckduckgo": {
+      "url": "https://duckduckgo.com/?q=",
+      "prefix": "/d"
+    }
+  },
   "app_refresh": 300
 }

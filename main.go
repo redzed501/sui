@@ -32,7 +32,7 @@ func main() {
 	indexData = NewIndexData()
 
 	addAppProviders()
-	//addSearchEngines()
+	addSearchEngines()
 
 	refreshApps()
 
@@ -72,12 +72,11 @@ func addAppProviders() {
 	
 }
 
-/*
-
 func addSearchEngines() {
 	log.Debugf("adding search engines\n")
+	indexData.SearchEngines = config.GetSearchEngines()
 }
-*/
+
 
 func refreshApps() {
 	for name, prov := range indexData.AppProviders {

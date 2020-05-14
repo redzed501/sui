@@ -1,6 +1,6 @@
 package search
 
 type SearchEngine struct {
-	URL    string
-	Prefix string
+	URL    string `json:"url"`
+	Prefix string `json:"prefix"`
 }
