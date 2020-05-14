@@ -11,13 +11,17 @@
  - Docker: [Linux](https://docs.docker.com/install/linux/docker-ce/debian/), [Mac](https://hub.docker.com/editions/community/docker-ce-desktop-mac), [Windows](https://hub.docker.com/editions/community/docker-ce-desktop-windows)
  - [Docker-compose](https://docs.docker.com/compose/install/) 
 
+### Shameless Plug
+
+This was designed to work with my compose setup. This setup can be found [here](https://github.com/willfantom/composing). This is a good reference if you want too see how the configuration works using both docker labels and the traefik API.
+
 ### Configuration
 
 This version of SUI is designed to pull the apps list from an external provider.
 
 Currently supported providers are:
- - Docker (via socket, tcp is a todo)
- - Træfik (via API) 
+ - `Docker` via socket
+ - `Træfik` via API
 
 #### Provider | Docker
 
@@ -35,6 +39,20 @@ example:
    }
    ...
 }
+```
+
+example in compose:
+```yaml
+services:
+   example:
+      container_name: ex
+      image: aservice:latest
+      networks:
+         - traefik-proxy
+      labels:
+         - [TRAEFIK LABELS]
+         - sui.protected=false
+         - sui.icon=application
 ```
 
 You must of course also mount the docker socket (as read-only).
@@ -83,3 +101,13 @@ These can be added or customized in the themer.js file. When changing the name o
 ```
 
 I might add a simpler way to edit themes at some point, but adding the current ones should be pretty straight forward.
+
+### TODO
+
+- [ ] Ignore traefik service with a regex
+- [ ] Connect to remote docker instances via TCP
+  - [ ] Ensure auth works with this too
+- [ ] If service goes missing, perhaps gray out for a few refresh cycles
+- [ ] Password protect `protected` services
+- [ ] Add some other providers (including a simple File)
+- [ ] Add more default icons
