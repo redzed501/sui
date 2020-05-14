@@ -36,7 +36,7 @@ func newAppProvider() *AppProvider {
 func newApp() *App {
 	return &App{
 		Icon: "application",
-		URL: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+		URL: "youtube.com/watch?v=dQw4w9WgXcQ",
 		Protected: false,
 		Added: time.Now(),
 	}
