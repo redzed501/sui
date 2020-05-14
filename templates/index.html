@@ -50,14 +50,14 @@
                     {{range $SName, $SEngine := .SearchEngines}}
                     <tr>
                         <td><a href="{{$SEngine.URL}}">{{$SName}}</a></td>
-                        <td>{{$SEngine.Prefix}}</td>
+                        <td>"/{{$SEngine.Prefix}}"</td>
                     </tr>
                     {{end}}
                 </table>
             </section>
 
             <header id="modal-footer">
-                <a href="https://github.com/jeroenpardon/"><span class="iconify" data-icon="mdi-github-box"></span></a>
+                <a href="https://github.com/willfantom/"><span class="iconify" data-icon="mdi-github-box"></span></a>
                 <a href="https://materialdesignicons.com/"><span class="iconify" data-icon="mdi-material-design"></a></span>
             </header>
         </div>
@@ -111,7 +111,7 @@
     </div>
 
     <script src="/static/js/script.js" type="text/javascript"></script>
-    <script src="/static/js/search.js" type="text/javascript"></script>
+    <script src="/js/search.js" type="text/javascript"></script>
     <script src="/static/js/themer.js" type="text/javascript"></script>
     
 </body>

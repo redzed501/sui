@@ -41,6 +41,7 @@ func main() {
 
 	serveAssets(r)
 	r.HandleFunc("/", serveIndex)
+	r.HandleFunc("/js/search.js", serveSearchJS)
 
 	http.ListenAndServe(":80", r)
 }
@@ -95,6 +96,15 @@ func refreshApps() {
 func serveIndex(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Serving Index")
 	var t = template.Must(template.ParseFiles("./templates/index.html"))
+
+	err := t.Execute(w, indexData)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func serveSearchJS(w http.ResponseWriter, r *http.Request) {
+	var t = template.Must(template.ParseFiles("./templates/search.js"))
 
 	err := t.Execute(w, indexData)
 	if err != nil {
