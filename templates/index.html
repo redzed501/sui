@@ -75,11 +75,15 @@
         </section>
 
         {{range $PName, $Provider := .AppProviders}}
+        {{ if $Provider.Protected }}
+        {{else}}
         <section id="apps">
             <script type="text/handlebars-template" id="apps-template"></script>
             <h3>{{$PName}}</h3>
             <div id="apps_loop">
                 {{range $ATitle, $App := $Provider.Apps}}
+                    {{ if $App.Protected }}
+                    {{else}}
                     <div class="apps_item">
                         <div class="apps_icon">
                             <span class="iconify icon" data-icon="mdi-{{$App.Icon}}"></span>
@@ -89,9 +93,11 @@
                             <span>{{$App.URL}}</span>
                         </div>
                     </div>
+                    {{end}}
                 {{end}}
             </div>
         </section>
+        {{end}}
         {{end}}
 
 
