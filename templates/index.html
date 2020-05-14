@@ -47,10 +47,10 @@
                         <th>Website</th>
                         <th>Prefix</th>
                     </tr>
-                    {{range .Query}}
+                    {{range $SName, $SEngine := .SearchEngines}}
                     <tr>
-                        <td><a href="{{.URL}}">{{.Name}}</a></td>
-                        <td>{{.Prefix}}</td>
+                        <td><a href="{{$SEngine.URL}}">{{$SName}}</a></td>
+                        <td>{{$SEngine.Prefix}}</td>
                     </tr>
                     {{end}}
                 </table>
@@ -74,19 +74,19 @@
             <h1 id="header_greet"></h1>
         </section>
 
-        {{range .Providers}}
+        {{range $PName, $Provider := .AppProviders}}
         <section id="apps">
             <script type="text/handlebars-template" id="apps-template"></script>
-            <h3>{{.Title}}</h3>
+            <h3>{{$PName}}</h3>
             <div id="apps_loop">
-                {{range .Apps}}
+                {{range $ATitle, $App := $Provider.Apps}}
                     <div class="apps_item">
                         <div class="apps_icon">
-                            <span class="iconify icon" data-icon="mdi-{{.Icon}}"></span>
+                            <span class="iconify icon" data-icon="mdi-{{$App.Icon}}"></span>
                         </div>
                         <div class="apps_text">
-                            <a href="https://{{.URL}}">{{.Name}}</a>
-                            <span>{{.URL}}</span>
+                            <a href="https://{{$App.URL}}">{{$ATitle}}</a>
+                            <span>{{$App.URL}}</span>
                         </div>
                     </div>
                 {{end}}

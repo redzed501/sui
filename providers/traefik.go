@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 
 	rules "github.com/containous/traefik/v2/pkg/rules"
 	log "github.com/sirupsen/logrus"
@@ -15,6 +17,7 @@ type TraefikProvider struct {
 	User   string
 	Pass   string
 	Docker *DockerProvider
+	Ignore []string
 }
 
 type TraefikRouter struct {
@@ -33,6 +36,7 @@ func NewTraefikProvider(cnf *config.TraefikConfig) (*AppProvider, error) {
 	tp.User = cnf.User
 	tp.Pass = cnf.Pass
 	tp.Docker = nil
+	tp.Ignore = cnf.IgnoredList
 
 	ap.TypeConfig = &tp
 	return ap, nil
@@ -46,9 +50,53 @@ func NewDockerTraefikProvider(cnf *config.TraefikConfig, dkr *AppProvider) (*App
 
 func (tp *TraefikProvider) GetApps(list map[string]*App) error {
 
-	_, err := tp.fetchRouters()
+	routers, err := tp.fetchRouters()
 	if err != nil {
 		return err
+	}
+
+	for _, router := range routers {
+
+		app := newApp()
+		name := router.Name
+		if tp.Docker != nil {
+			ci, err := tp.Docker.GetLocalContainerInfo(router.Name)
+			if err == nil {
+				dName, exist := ci.Labels[nameFromLabel]
+				if exist {
+					name = dName
+				}
+			}
+		}
+		for _, ignoreName := range tp.Ignore {
+			if strings.ToLower(name) == ignoreName {
+				continue
+			}
+		}
+		app.URL = router.Domain
+		app.Icon = "application"
+		app.Protected = false
+		if tp.Docker != nil {
+			ci, err := tp.Docker.GetLocalContainerInfo(router.Name)
+			if err == nil {
+				dURL, exist := ci.Labels[urlFromLabel]
+				if exist {
+					app.URL = dURL
+				}
+				dIcon, exist := ci.Labels[iconFromLabel]
+				if exist {
+					app.Icon = dIcon
+				}
+				dProtec, exist := ci.Labels[iconFromLabel]
+				if exist {
+					dProtecBool, err := strconv.ParseBool(dProtec)
+					if err == nil {
+						app.Protected = dProtecBool
+					}
+				}
+			}
+		}
+		list[name] = app
 	}
 
 	return nil

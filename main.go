@@ -1,6 +1,11 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
+	"text/template"
+
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/willfantom/sui/config"
@@ -31,12 +36,12 @@ func main() {
 
 	refreshApps()
 
-	//r := mux.NewRouter()
+	r := mux.NewRouter()
 
-	//serveAssets(r)
-	//r.HandleFunc("/", serveIndex)
+	serveAssets(r)
+	r.HandleFunc("/", serveIndex)
 
-	//http.ListenAndServe(":80", r)
+	http.ListenAndServe(":80", r)
 }
 
 func addAppProviders() {
@@ -83,12 +88,12 @@ func refreshApps() {
 		log.Debugf("found apps | provider: %s | app count: %d", name, len(prov.Apps))
 	}
 }
-/*
+
 func serveIndex(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Serving Index")
 	var t = template.Must(template.ParseFiles("./templates/index.html"))
 
-	err := t.Execute(w, IndexData{Providers: providerList})
+	err := t.Execute(w, indexData)
 	if err != nil {
 		panic(err)
 	}
@@ -98,4 +103,4 @@ func serveAssets(r *mux.Router) {
 	fs := http.FileServer(http.Dir("./assets/"))
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fs))
 }
-*/
+
