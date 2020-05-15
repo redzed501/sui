@@ -13,6 +13,9 @@ build:
   stage: build
   services:
     - name: docker:stable-dind
+  only:
+    - master
+    - dev
   except:
     - triggers
   script:
