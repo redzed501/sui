@@ -2,6 +2,7 @@ package providers
 
 import (
 	"strings"
+	"time"
 
 	"github.com/willfantom/sui/config"
 )
@@ -30,6 +31,16 @@ func NewAppProvider(name string, ptype string) (*AppProvider, error) {
 
 	return provider, err
 }
+
+func newApp() *App {
+	return &App{
+		Icon:    "application",
+		URL:     "youtube.com/watch?v=dQw4w9WgXcQ",
+		Enabled: true,
+		Added:   time.Now(),
+	}
+}
+
 
 func (ap *AppProvider) RefreshApps() error {
 	switch ap.PType {
