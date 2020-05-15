@@ -1,0 +1,6 @@
+{
+  "url": "https://traefik.myvpsexaple.tld",
+  "user": "myusename",
+  "pass": "supasecure",
+  "ignored": ["PROMETHEUS@INTERNAL", "NOOP@INTERNAL", "API@INTERNAL"]
+}

@@ -1,0 +1,7 @@
+{
+  "url": "https://traefik.mymainexample.tld",
+  "user": "myusename",
+  "pass": "supasecure1234",
+  "ignored": ["PROMETHEUS@INTERNAL", "NOOP@INTERNAL", "API@INTERNAL"],
+  "dockers": ["local-docker"]
+}
