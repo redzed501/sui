@@ -101,6 +101,7 @@ func (tr *Traefik) GetApps() map[string]*App {
 				app.Enabled = false
 			}
 		}
+		app.Icon = getDefaultIcon(name)
 		if router.RuleStr != "" {
 			domainStrs, err := rules.ParseDomains(router.RuleStr)
 			if err != nil {
@@ -117,7 +118,6 @@ func (tr *Traefik) GetApps() map[string]*App {
 				name = newName
 			}
 		}
-		app.Icon = getDefaultIcon(name)
 		if app.Enabled {
 			apps[name] = app
 		}
