@@ -51,25 +51,15 @@ func addAppProviders() {
 	var err error
 	log.Debugf("adding docker providers\n")
 	for name, cnf := range config.GetDockerCnfs() {
-		indexData.AppProviders[name], err = providers.NewDockerProvider(cnf)
+		indexData.AppProviders[name], err = providers.NewAppProvider(providers.Docker, cnf)
 		if err != nil {
 			panic(err)
 		}
 	}
-/*
-	log.Debugf("adding docker x træfik providers\n")
-	for name, cnf := range config.GetTraefikCnfs() {
-		if cnf.PariedDocker != "" {
-			dapp, exist := indexData.AppProviders[name]
-			if exist {
-				indexData.AppProviders[name], err = providers.NewDockerTraefikProvider(cnf, dapp)
-			}
-		}
-	}
-*/
+
 	log.Debugf("adding træfik providers\n")
 	for name, cnf := range config.GetTraefikCnfs() {
-		indexData.AppProviders[name], err = providers.NewTraefikProvider(cnf)
+		indexData.AppProviders[name], err = providers.NewAppProvider(providers.Traefik, cnf)
 	}
 	// Load other providers here
 	

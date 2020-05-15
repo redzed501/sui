@@ -41,10 +41,7 @@ type DockerVersionInfo struct {
 	Os      string `json:"Os"`
 }
 
-func NewDockerProvider(cnf *config.DockerConfig) (*AppProvider, error) {
-	ap := newAppProvider()
-	ap.PType = Docker
-
+func NewDockerProvider(cnf *config.DockerConfig) (*DockerProvider, error) {
 	var dp DockerProvider
 	client, err := createDockerClient(cnf.Path, cnf.DType)
 	if err != nil {
@@ -54,23 +51,6 @@ func NewDockerProvider(cnf *config.DockerConfig) (*AppProvider, error) {
 	dp.User = cnf.User
 	dp.Pass = cnf.Pass
 
-	ap.TypeConfig = &dp
-
-	if !dp.TestDockerConn() {
-		return nil, fmt.Errorf("could not create docker app provider")
-	}
-	return ap, nil
-}
-
-func NewDockerProviderLite(cnf *config.DockerConfig) (*DockerProvider, error) {
-	var dp DockerProvider
-	client, err := createDockerClient(cnf.Path, cnf.DType)
-	if err != nil {
-		return nil, fmt.Errorf("could not create docker provider")
-	}
-	dp.Client = client
-	dp.User = cnf.User
-	dp.Pass = cnf.Pass
 	if !dp.TestDockerConn() {
 		return nil, fmt.Errorf("could not create docker app provider")
 	}

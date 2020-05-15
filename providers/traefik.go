@@ -27,11 +27,8 @@ type TraefikRouter struct {
 	Ignored bool
 }
 
-func NewTraefikProvider(cnf *config.TraefikConfig) (*AppProvider, error) {
+func NewTraefikProvider(cnf *config.TraefikConfig) (*TraefikProvider, error) {
 	var err error
-	ap := newAppProvider()
-	ap.PType = Traefik
-
 	var tp TraefikProvider
 	tp.URL = cnf.URL
 	tp.User = cnf.User
@@ -40,14 +37,12 @@ func NewTraefikProvider(cnf *config.TraefikConfig) (*AppProvider, error) {
 	tp.Dockers = make(map[string]*DockerProvider)
 
 	for name, dp := range cnf.DockerConfigs {
-		tp.Dockers[name], err = NewDockerProviderLite(dp)
+		tp.Dockers[name], err = NewDockerProvider(dp)
 		if err != nil {
 			log.Errorf("failed to add docker provider (%s) to traefik provider", name)
 		}
 	}
-
-	ap.TypeConfig = &tp
-	return ap, nil
+	return &tp, nil
 }
 
 func (tp *TraefikProvider) GetApps(list map[string]*App) error {
