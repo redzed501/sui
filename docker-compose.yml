@@ -4,7 +4,7 @@ services:
   sui:
     container_name: sui
     restart: unless-stopped
-    image: willfantom/sui:latest
+    image: willfantom/sui:dev
     ports:
       - 8080:6999
     volumes:
@@ -14,5 +14,4 @@ services:
       - SUI_DEBUG=true
     labels:
       - sui.enabled=true
-      - sui.protect=false
       - sui.icon=home
