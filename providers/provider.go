@@ -24,6 +24,7 @@ func NewAppProvider(name string, ptype string) (*AppProvider, error) {
 		provider.TypeConfig, err = newDocker(name)
 		break
 	case "traefik":
+		provider.TypeConfig, err = newTraefik(name)
 		break
 	}
 
@@ -39,8 +40,23 @@ func (ap *AppProvider) RefreshApps() error {
 		}
 		ap.Apps = dkrCnf.GetApps()
 		break
+	case "traefik":
+		trCnf, err := toTraefik(ap.TypeConfig)
+		if err != nil {
+			return err
+		}
+		ap.Apps = trCnf.GetApps()
+		break
 	}
 	return nil
+}
+
+func getDefaultIcon(name string) string {
+	_, exist := iconDefault[name]
+	if exist {
+		return iconDefault[name]
+	}
+	return "application"
 }
 
 func getFileConfigRoot() string {

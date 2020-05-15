@@ -130,30 +130,31 @@ func (dkr *Docker) GetApps() map[string]*App {
 func (dkr *Docker) UpgradeApp(matchName string, app *App) (string, bool) {
 	info, err := dkr.getContainerInfo(matchName)
 	if err != nil {
-		panic(err)
 		return "", false
 	}
-	lIcon, icex := info.Config.Labels[dockerIconLabel]
-	lURL, urlex := info.Config.Labels[dockerURLLabel]
-	lEnab, enabex := info.Config.Labels[dockerEnabledLabel]
+	if info != nil {
+		lIcon, icex := info.Config.Labels[dockerIconLabel]
+		lURL, urlex := info.Config.Labels[dockerURLLabel]
+		lEnab, enabex := info.Config.Labels[dockerEnabledLabel]
 
-	if icex {
-		app.Icon = lIcon
-	}
-	if urlex {
-		app.URL = lURL
-	}
-	if enabex {
-		lEnabB, err := strconv.ParseBool(lEnab)
-		if err == nil {
-			app.Enabled = lEnabB
-		} else {
-			enabex = false
+		if icex {
+			app.Icon = lIcon
 		}
-	}
-	lName, namex := info.Config.Labels[dockerNameLabel]
-	if namex {
-		return lName, true
+		if urlex {
+			app.URL = lURL
+		}
+		if enabex {
+			lEnabB, err := strconv.ParseBool(lEnab)
+			if err == nil {
+				app.Enabled = lEnabB
+			} else {
+				enabex = false
+			}
+		}
+		lName, namex := info.Config.Labels[dockerNameLabel]
+		if namex {
+			return lName, true
+		}
 	}
 	return "", false
 }
@@ -242,7 +243,7 @@ func (dkr *Docker) requestFromDocker(path string) (*http.Response, error) {
 func (dkr *Docker) getContainerList() ([]*DockerContainerInfo, error) {
 	response, err := dkr.requestFromDocker("containers/json")
 	if err != nil || response.StatusCode != 200 {
-		log.Errorf("failed to fetch local docker container list")
+		log.Errorf("failed to fetch docker container list")
 		return nil, err
 	}
 	var containerList []*DockerContainerInfo
@@ -257,7 +258,7 @@ func (dkr *Docker) getContainerList() ([]*DockerContainerInfo, error) {
 func (dkr *Docker) getContainerInfo(name string) (*DockerIndividualInfo, error) {
 	response, err := dkr.requestFromDocker(fmt.Sprintf("containers/%s/json", name))
 	if err != nil || response.StatusCode != 200 {
-		log.Errorf("failed to fetch local docker container info")
+		//log.Errorf("failed to fetch docker container info")
 		return nil, err
 	}
 	var containerInfo *DockerIndividualInfo
