@@ -49,20 +49,14 @@ func main() {
 
 func addAppProviders() {
 	var err error
-	log.Debugf("adding docker providers\n")
-	for name, cnf := range config.GetDockerCnfs() {
-		indexData.AppProviders[name], err = providers.NewAppProvider(providers.Docker, cnf)
+	for _, provider := range config.GetAppProviderConfigs() {
+		log.Debugf("adding provider | %s", provider.Name)
+		indexData.AppProviders[provider.Name], err = providers.NewAppProvider(provider.Name, provider.PType)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	log.Debugf("adding træfik providers\n")
-	for name, cnf := range config.GetTraefikCnfs() {
-		indexData.AppProviders[name], err = providers.NewAppProvider(providers.Traefik, cnf)
-	}
-	// Load other providers here
-	
 }
 
 func addSearchEngines() {

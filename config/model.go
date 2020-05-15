@@ -13,38 +13,23 @@ const (
 )
 
 type Config struct {
-	AppTitle       string                           `json:"title"`
-	Debug          bool                             `json:"debug"`
-	AppRefresh     int                              `json:"app_refresh"`
-	DockerConfigs  map[string]*DockerConfig         `json:"dockers"`
-	TraefikConfigs map[string]*TraefikConfig        `json:"traefiks"`
-	SearchEngines  map[string]*search.SearchEngine  `json:"engines"`
-	BookmarkCats   map[string]*[]bookmarks.Bookmark `json:"bookmarks"`
+	AppTitle        string                           `json:"title"`
+	Debug           bool                             `json:"debug"`
+	AppRefresh      int                              `json:"app_refresh"`
+	ProviderConfigs []AppProviderConfig              `json:"appproviders"`
+	SearchEngines   map[string]*search.SearchEngine  `json:"engines"`
+	BookmarkCats    map[string]*[]bookmarks.Bookmark `json:"bookmarks"`
 }
 
-type DockerConfig struct {
-	Path     string `json:"path"`
-	CnfDType string `json:"type"`
-	DType    DockerType
-	User     string `json:"user"`
-	Pass     string `json:"pass"`
-}
-
-type TraefikConfig struct {
-	URL            string                   `json:"url"`
-	DockerConfigs  map[string]*DockerConfig `json:"dockers"`
-	CnfIgnoredList string                   `json:"ignored"`
-	User           string                   `json:"user"`
-	Pass           string                   `json:"pass"`
-	IgnoredList    []string
+type AppProviderConfig struct {
+	Name  string `json:"name"`
+	PType string `json:"type"`
 }
 
 func NewConfig() *Config {
 	return &Config{
 		AppTitle:       "SUI",
 		AppRefresh:     300,
-		DockerConfigs:  make(map[string]*DockerConfig),
-		TraefikConfigs: make(map[string]*TraefikConfig),
 		SearchEngines:  make(map[string]*search.SearchEngine),
 		BookmarkCats:   make(map[string]*[]bookmarks.Bookmark),
 	}

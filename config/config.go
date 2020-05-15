@@ -2,8 +2,8 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/willfantom/sui/bookmarks"
@@ -15,63 +15,38 @@ var (
 )
 
 const (
-	cnfFilePath string = "/sui/config.json"
+	fileConfigRoot string = "/sui"
+	mainConfigFile string = "config.json"
 )
 
 func LoadConfig() error {
 	cnf = NewConfig()
-
-	//File
-	loadFromFile(cnfFilePath)
-	//ENV
-	// ARGS
-
-	parseConfig()
-	return nil
+	err := loadFromFile(fmt.Sprintf("%s/%s", fileConfigRoot, mainConfigFile))
+	//TODO: ENV, CMDARGS
+	return err
 }
 
-func loadFromFile(path string) {
+func loadFromFile(path string) error {
 	cnfFile, err := os.Open(path)
 	if err != nil {
 		log.Errorf("no config file found at %s", path)
-		return
+		return err
 	}
 	defer cnfFile.Close()
 	err = json.NewDecoder(cnfFile).Decode(cnf)
 	if err != nil {
 		log.Errorf("config file could not be parsed | %s", path)
-		return
+		return err
 	}
-}
-
-func parseConfig() {
-	for name, c := range cnf.DockerConfigs {
-		if c.CnfDType == "socket" {
-			cnf.DockerConfigs[name].DType = Socket
-		} else if c.CnfDType == "tcp" {
-			cnf.DockerConfigs[name].DType = TCP
-		} else {
-			log.Errorf("invaid docker type for %s\n", name)
-			delete(cnf.DockerConfigs, name)
-		}
-	}
-	for name, c := range cnf.TraefikConfigs {
-		if c.CnfIgnoredList != "" {
-			cnf.TraefikConfigs[name].IgnoredList = strings.Split(strings.ToLower(c.CnfIgnoredList), " ")
-		}
-	}
+	return nil
 }
 
 func IsDebug() bool {
 	return cnf.Debug
 }
 
-func GetDockerCnfs() map[string]*DockerConfig {
-	return cnf.DockerConfigs
-}
-
-func GetTraefikCnfs() map[string]*TraefikConfig {
-	return cnf.TraefikConfigs
+func GetAppProviderConfigs() []AppProviderConfig {
+	return cnf.ProviderConfigs
 }
 
 func GetSearchEngines() map[string]*search.SearchEngine {
@@ -84,4 +59,8 @@ func GetBookmarks() map[string]*[]bookmarks.Bookmark {
 
 func GetAppRefresh() int {
 	return cnf.AppRefresh
+}
+
+func GetFileConfigRoot() string {
+	return fileConfigRoot
 }
