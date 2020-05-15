@@ -73,8 +73,8 @@ func (tp *TraefikProvider) GetApps(list map[string]*App) error {
 			nameMatch := ci.Names[0][1:]
 			_, match := list[nameMatch]
 			if match {
-				updated := list[nameMatch].UpdateFromDockerLabels(ci)
-				if updated {
+				updatedOther := list[nameMatch].UpdateFromDockerLabels(ci)
+				if updatedOther {
 					log.Debugf("updated app (%s) with docker labels", nameMatch)
 				}
 			}

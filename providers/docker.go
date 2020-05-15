@@ -100,6 +100,15 @@ func (dp *DockerProvider) GetApps(list map[string]*App) error {
 	return nil
 }
 
+func (ap *AppProvider) UpdateAppNameFromLabels(appName string, ci *ContainerInfo) bool {
+	lName, exist := ci.Labels[nameFromLabel]
+	if !exist {
+		return false
+	}
+	ap.renameApp(appName, lName)
+	return true
+}
+
 func (app *App) UpdateFromDockerLabels(ci *ContainerInfo) bool {
 	lIcon, icex := ci.Labels[iconFromLabel]
 	lURL, urlex := ci.Labels[urlFromLabel]

@@ -23,8 +23,6 @@ func (ap *AppProvider) RefreshApps() error {
 	return nil
 }
 
-
-
 func (ap *AppProvider) renameApp(oldName, newName string) error {
 	if !ap.appExist(oldName) {
 		return fmt.Errorf("could not delete app")
