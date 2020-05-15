@@ -154,7 +154,6 @@ func loadTraefikConfig(name string) (*TraefikConfig, error) {
 	}
 	return trCnf, nil
 }
-
 ////----- end
 
 ////----- Provider Specific ---> eof
