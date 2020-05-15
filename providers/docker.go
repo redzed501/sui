@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	dockerAPIVersion string = "v1.40"
+	dockerAPIVersion string = "v1.24"
 	nameFromLabel    string = "sui.name"
 	iconFromLabel    string = "sui.icon"
 	urlFromLabel     string = "sui.url"
