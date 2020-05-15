@@ -56,7 +56,7 @@ func addAppProviders() {
 			panic(err)
 		}
 	}
-
+/*
 	log.Debugf("adding docker x træfik providers\n")
 	for name, cnf := range config.GetTraefikCnfs() {
 		if cnf.PariedDocker != "" {
@@ -66,7 +66,7 @@ func addAppProviders() {
 			}
 		}
 	}
-
+*/
 	log.Debugf("adding træfik providers\n")
 	for name, cnf := range config.GetTraefikCnfs() {
 		indexData.AppProviders[name], err = providers.NewTraefikProvider(cnf)

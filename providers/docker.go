@@ -62,6 +62,21 @@ func NewDockerProvider(cnf *config.DockerConfig) (*AppProvider, error) {
 	return ap, nil
 }
 
+func NewDockerProviderLite(cnf *config.DockerConfig) (*DockerProvider, error) {
+	var dp DockerProvider
+	client, err := createDockerClient(cnf.Path, cnf.DType)
+	if err != nil {
+		return nil, fmt.Errorf("could not create docker provider")
+	}
+	dp.Client = client
+	dp.User = cnf.User
+	dp.Pass = cnf.Pass
+	if !dp.TestDockerConn() {
+		return nil, fmt.Errorf("could not create docker app provider")
+	}
+	return &dp, nil
+}
+
 func (dp *DockerProvider) GetApps(list map[string]*App) error {
 
 	containers, err := dp.GetContainerList()
@@ -105,6 +120,31 @@ func (dp *DockerProvider) GetApps(list map[string]*App) error {
 	return nil
 }
 
+func (app *App) UpdateFromDockerLabels(ci *ContainerInfo) bool {
+	lIcon, icex := ci.Labels[iconFromLabel]
+	lURL, urlex := ci.Labels[urlFromLabel]
+	lProc, procex := ci.Labels[protecFromLabel]
+
+	if icex {
+		app.Icon = lIcon
+	}
+	if urlex {
+		app.URL = lURL
+	}
+	if procex {
+		lProcB, err := strconv.ParseBool(lProc)
+		if err == nil {
+			app.Protected = lProcB
+		} else {
+			procex = false
+		}
+	}
+	if icex || urlex || procex {
+		return true
+	}
+	return false
+}
+
 func (dp *DockerProvider) TestDockerConn() bool {
 	version, err := dp.GetDockerVersion()
 	if err != nil {
@@ -129,7 +169,7 @@ func (dp *DockerProvider) GetContainerList() ([]*ContainerInfo, error) {
 	return containerList, nil
 }
 
-func (dp *DockerProvider) GetLocalContainerInfo(name string) (*ContainerInfo, error) {
+func (dp *DockerProvider) GetContainerInfo(name string) (*ContainerInfo, error) {
 	response, err := requestFromDocker(dp.Client, fmt.Sprintf("containers/%s/json", name))
 	if err != nil || response.StatusCode != 200 {
 		log.Errorf("failed to fetch local docker container info")

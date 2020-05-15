@@ -31,12 +31,12 @@ type DockerConfig struct {
 }
 
 type TraefikConfig struct {
-	URL            string `json:"url"`
-	PariedDocker   string `json:"docker"`
-	CnfIgnoredList string `json:"ignored"`
+	URL            string                   `json:"url"`
+	DockerConfigs  map[string]*DockerConfig `json:"dockers"`
+	CnfIgnoredList string                   `json:"ignored"`
+	User           string                   `json:"user"`
+	Pass           string                   `json:"pass"`
 	IgnoredList    []string
-	User           string `json:"user"`
-	Pass           string `json:"pass"`
 }
 
 func NewConfig() *Config {

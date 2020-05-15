@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	rules "github.com/containous/traefik/v2/pkg/rules"
@@ -16,7 +15,7 @@ type TraefikProvider struct {
 	URL    string
 	User   string
 	Pass   string
-	Docker *DockerProvider
+	Dockers map[string]*DockerProvider
 	Ignore []string
 }
 
@@ -25,9 +24,11 @@ type TraefikRouter struct {
 	RuleStr string `json:"rule"`
 	Domain  string
 	Status  string `json:"status"`
+	Ignored bool
 }
 
 func NewTraefikProvider(cnf *config.TraefikConfig) (*AppProvider, error) {
+	var err error
 	ap := newAppProvider()
 	ap.PType = Traefik
 
@@ -35,30 +36,58 @@ func NewTraefikProvider(cnf *config.TraefikConfig) (*AppProvider, error) {
 	tp.URL = cnf.URL
 	tp.User = cnf.User
 	tp.Pass = cnf.Pass
-	tp.Docker = nil
 	tp.Ignore = cnf.IgnoredList
+	tp.Dockers = make(map[string]*DockerProvider)
+
+	for name, dp := range cnf.DockerConfigs {
+		tp.Dockers[name], err = NewDockerProviderLite(dp)
+		if err != nil {
+			log.Errorf("failed to add docker provider (%s) to traefik provider", name)
+		}
+	}
 
 	ap.TypeConfig = &tp
 	return ap, nil
 }
 
-func NewDockerTraefikProvider(cnf *config.TraefikConfig, dkr *AppProvider) (*AppProvider, error) {
-	app, err := NewTraefikProvider(cnf)
-	app.TypeConfig.(*TraefikProvider).Docker = dkr.TypeConfig.(*DockerProvider)
-	return app, err
-}
-
 func (tp *TraefikProvider) GetApps(list map[string]*App) error {
-
+	//Get routers from traefik api
 	routers, err := tp.fetchRouters()
 	if err != nil {
 		return err
 	}
-
 	for _, router := range routers {
-
+		if router.Ignored {
+			continue
+		}
 		app := newApp()
-		name := router.Name
+		name := strings.ToLower(router.Name)
+		app.URL = router.Domain
+		app.Icon = getDefaultIcon(name)
+		app.Protected = false	
+		list[name] = app
+	}
+	//Update with docker label info
+	// service name in traefik must match container's name
+	for _, dp := range tp.Dockers {
+		cil, err := dp.GetContainerList()
+		if err != nil {
+			continue
+		}
+		for _, ci := range cil {
+			nameMatch := ci.Names[0][1:]
+			_, match := list[nameMatch]
+			if match {
+				updated := list[nameMatch].UpdateFromDockerLabels(ci)
+				if updated {
+					log.Debugf("updated app (%s) with docker labels", nameMatch)
+				}
+			}
+		}
+	}
+
+
+	/*
 		if tp.Docker != nil {
 			ci, err := tp.Docker.GetLocalContainerInfo(router.Name)
 			if err == nil {
@@ -101,7 +130,7 @@ func (tp *TraefikProvider) GetApps(list map[string]*App) error {
 			}
 		}
 		list[name] = app
-	}
+	}*/
 
 	return nil
 }
@@ -127,6 +156,11 @@ func (tp *TraefikProvider) fetchRouters() ([]*TraefikRouter, error) {
 	}
 
 	for idx, router := range routerList {
+		for _, ignore := range tp.Ignore {
+			if strings.ToLower(ignore) == strings.ToLower(router.Name) {
+				router.Ignored = true
+			}
+		}
 		if router.RuleStr != "" {
 			domainStrs, err := rules.ParseDomains(router.RuleStr)
 			if err != nil {
@@ -136,7 +170,6 @@ func (tp *TraefikProvider) fetchRouters() ([]*TraefikRouter, error) {
 			if len(domainStrs) > 0 {
 				routerList[idx].Domain = domainStrs[0]
 			}
-			
 		}
 	}
 
