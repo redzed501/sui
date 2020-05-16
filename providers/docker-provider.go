@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -10,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	docker "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,6 +29,7 @@ var (
 
 ////----- Models --->
 type Docker struct {
+	Host   string
 	Client *http.Client
 	User   string
 	Pass   string
@@ -70,6 +71,7 @@ func newDocker(name string) (*Docker, error) {
 		return nil, err
 	}
 	docker := Docker{
+		Host: config.ConnURL,
 		User: config.User,
 		Pass: config.Pass,
 	}
@@ -201,42 +203,70 @@ func newDockerConfig() *DockerConfig {
 	}
 }
 
-func (cnf *DockerConfig) createClient() (*http.Client, error) {
+func (cnf *DockerConfig) createClient() (*docker.Client, error) {
 	var path string
 	if strings.ToLower(cnf.ConnType) == "unix" {
-		if _, err := os.Stat(cnf.ConnPath); err == nil {
-			log.Debugf("docker socket path found")
-			path = cnf.ConnPath
-		} else if os.IsNotExist(err) {
-			log.Errorf("you must mount the docker socket (%s)", path)
+		if !cnf.dockerSocketExist() {
+			log.Errorf("you must mount the docker socket (%s) to use unix type", path)
 			return nil, fmt.Errorf("docker socket is not mounted (correctly)")
-		} else {
-			log.Errorf("can not find the docker socket (%s)", path)
-			return nil, fmt.Errorf("docker socket not found")
 		}
+		path = fmt.Sprintf("%s://%s", strings.ToLower(cnf.ConnType), cnf.ConnPath)
 	} else if strings.ToLower(cnf.ConnType) == "tcp" {
-		path = cnf.ConnURL
+		if !cnf.dockerTCPOkay() {
+			log.Errorf("you must enter a valid [ip]:[port] to use tcp type docker")
+			return nil, fmt.Errorf("docker host is not valid")
+		}
+		path = fmt.Sprintf("%s://%s", strings.ToLower(cnf.ConnType), cnf.ConnURL)
 	} else {
 		return nil, fmt.Errorf("type must be unix or tcp | given -> %s", cnf.ConnType)
 	}
-	httpClient := http.Client{
-		Transport: &http.Transport{
-			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial(strings.ToLower(cnf.ConnType), path)
-			},
-		},
+	dkrClient, err := docker.NewClient(path)
+	if err != nil {
+		return nil, err
 	}
-	return &httpClient, nil
+	return dkrClient, nil
+}
+
+func (cnf *DockerConfig) dockerSocketExist() bool {
+	if _, err := os.Stat(cnf.ConnPath); err == nil {
+		return true
+	}
+	return false
+}
+
+func (cnf *DockerConfig) dockerTCPOkay() bool {
+	parts := strings.Split(cnf.ConnURL, ":")
+	log.Infoln(parts)
+	if len(parts) != 2 {
+		return false
+	}
+	ip := net.ParseIP(parts[0])
+	if ip != nil {
+		_, err := strconv.ParseInt(parts[1], 10, 32)
+		if err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func (dkr *Docker) requestFromDocker(path string) (*http.Response, error) {
 	//TODO: support non localhost hosts....
-	path = fmt.Sprintf("http://127.0.0.1/%s/%s", dockerAPIVersion, path)
+	host := dkr.Host
+	prefix := "tcp"
+	if host == "" {
+		host = "127.0.0.1"
+		prefix = "http"
+	}
+	path = fmt.Sprintf("%s://%s/%s/%s", prefix, host, dockerAPIVersion, path)
 	req, err := http.NewRequest("GET", path, nil)
 	if dkr.User != "" {
 		req.SetBasicAuth(dkr.User, dkr.Pass)
 	}
 	response, err := dkr.Client.Do(req)
+	if err != nil {
+		panic(err)
+	}
 	return response, err
 }
 
