@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -30,7 +29,7 @@ var (
 ////----- Models --->
 type Docker struct {
 	Host   string
-	Client *http.Client
+	Client *docker.Client
 	User   string
 	Pass   string
 }
@@ -56,11 +55,6 @@ type DockerIndividualInfo struct {
 	Name   string                `json:"Names"`
 	Config DockerContainerConfig `json:"Config"`
 }
-type DockerVersionInfo struct {
-	Version string `json:"Version"`
-	Os      string `json:"Os"`
-}
-
 ////----- end
 
 ////----- Common App Provider Functions --->
@@ -130,32 +124,34 @@ func (dkr *Docker) GetApps() map[string]*App {
 // to use
 // Returns true if returning a new suggested app name
 func (dkr *Docker) UpgradeApp(matchName string, app *App) (string, bool) {
-	info, err := dkr.getContainerInfo(matchName)
+	containers, err := dkr.getContainerList()
 	if err != nil {
-		return "", false
+		return  "", false
 	}
-	if info != nil {
-		lIcon, icex := info.Config.Labels[dockerIconLabel]
-		lURL, urlex := info.Config.Labels[dockerURLLabel]
-		lEnab, enabex := info.Config.Labels[dockerEnabledLabel]
+	for _, info := range containers {
+		if len(info.Names) != 0 && info.Names[0][1:] == matchName {
+			lIcon, icex := info.Labels[dockerIconLabel]
+			lURL, urlex := info.Labels[dockerURLLabel]
+			lEnab, enabex := info.Labels[dockerEnabledLabel]
 
-		if icex {
-			app.Icon = lIcon
-		}
-		if urlex {
-			app.URL = lURL
-		}
-		if enabex {
-			lEnabB, err := strconv.ParseBool(lEnab)
-			if err == nil {
-				app.Enabled = lEnabB
-			} else {
-				enabex = false
+			if icex {
+				app.Icon = lIcon
 			}
-		}
-		lName, namex := info.Config.Labels[dockerNameLabel]
-		if namex {
-			return lName, true
+			if urlex {
+				app.URL = lURL
+			}
+			if enabex {
+				lEnabB, err := strconv.ParseBool(lEnab)
+				if err == nil {
+					app.Enabled = lEnabB
+				} else {
+					enabex = false
+				}
+			}
+			lName, namex := info.Labels[dockerNameLabel]
+			if namex {
+				return lName, true
+			}
 		}
 	}
 	return "", false
@@ -169,7 +165,7 @@ func (dkr *Docker) TestConnection(output bool) bool {
 	if err != nil {
 		return false
 	}
-	log.Debugf("docker version checked | %s", version.Version)
+	log.Debugf("docker version checked | %s", version)
 	return true
 }
 
@@ -250,67 +246,24 @@ func (cnf *DockerConfig) dockerTCPOkay() bool {
 	return false
 }
 
-func (dkr *Docker) requestFromDocker(path string) (*http.Response, error) {
-	//TODO: support non localhost hosts....
-	host := dkr.Host
-	prefix := "tcp"
-	if host == "" {
-		host = "127.0.0.1"
-		prefix = "http"
-	}
-	path = fmt.Sprintf("%s://%s/%s/%s", prefix, host, dockerAPIVersion, path)
-	req, err := http.NewRequest("GET", path, nil)
-	if dkr.User != "" {
-		req.SetBasicAuth(dkr.User, dkr.Pass)
-	}
-	response, err := dkr.Client.Do(req)
+func (dkr *Docker) getContainerList() ([]docker.APIContainers, error) {
+	containerList, err := dkr.Client.ListContainers(docker.ListContainersOptions{})
 	if err != nil {
-		panic(err)
-	}
-	return response, err
-}
-
-func (dkr *Docker) getContainerList() ([]*DockerContainerInfo, error) {
-	response, err := dkr.requestFromDocker("containers/json")
-	if err != nil || response.StatusCode != 200 {
 		log.Errorf("failed to fetch docker container list")
-		return nil, err
-	}
-	var containerList []*DockerContainerInfo
-	err = json.NewDecoder(response.Body).Decode(&containerList)
-	if err != nil {
-		log.Errorf("docker container list could not be parsed")
 		return nil, err
 	}
 	return containerList, nil
 }
 
-func (dkr *Docker) getContainerInfo(name string) (*DockerIndividualInfo, error) {
-	response, err := dkr.requestFromDocker(fmt.Sprintf("containers/%s/json", name))
-	if err != nil || response.StatusCode != 200 {
-		//log.Errorf("failed to fetch docker container info")
-		return nil, err
-	}
-	var containerInfo *DockerIndividualInfo
-	err = json.NewDecoder(response.Body).Decode(&containerInfo)
+func (dkr *Docker) getDockerVersion() (string, error) {
+	versionData, err := dkr.Client.Version()
 	if err != nil {
-		log.Errorf("docker container info could not be parsed")
-		return nil, err
-	}
-	return containerInfo, nil
-}
-
-func (dkr *Docker) getDockerVersion() (*DockerVersionInfo, error) {
-	response, err := dkr.requestFromDocker("version")
-	if err != nil || response.StatusCode != 200 {
 		log.Errorf("failed to fetch docker version")
-		return nil, err
+		return "", err
 	}
-	var versionInfo *DockerVersionInfo
-	err = json.NewDecoder(response.Body).Decode(&versionInfo)
-	if err != nil {
-		log.Errorf("docker version info could not be parsed\n")
-		return nil, err
+	version := versionData.Get("Version")
+	if version == "" {
+		return "", fmt.Errorf("docker version info not found")
 	}
-	return versionInfo, nil
+	return version, nil
 }
