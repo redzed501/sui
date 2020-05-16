@@ -29,19 +29,21 @@ var (
 
 ////----- Models --->
 type Docker struct {
-	Host   string
-	Client *docker.Client
-	User   string
-	Pass   string
-	Swarm bool
+	Host       string
+	Client     *docker.Client
+	User       string
+	Pass       string
+	DefaultEnb bool
+	Swarm      bool
 }
 type DockerConfig struct {
-	ConnType string `json:"connection"`
-	ConnPath string `json:"path"`
-	ConnURL  string `json:"url"`
-	User     string `json:"user"`
-	Pass     string `json:"pass"`
-	Swarm    bool   `json:"swarm"`
+	ConnType   string `json:"connection"`
+	ConnPath   string `json:"path"`
+	ConnURL    string `json:"url"`
+	User       string `json:"user"`
+	Pass       string `json:"pass"`
+	DefaultEnb bool   `json:"default"`
+	Swarm      bool   `json:"swarm"`
 }
 type DockerContainerInfo struct {
 	ID    string   `json:"Id"`
@@ -69,10 +71,11 @@ func newDocker(name string) (*Docker, error) {
 		return nil, err
 	}
 	docker := Docker{
-		Host: config.ConnURL,
-		User: config.User,
-		Pass: config.Pass,
-		Swarm: config.Swarm,
+		Host:       config.ConnURL,
+		User:       config.User,
+		Pass:       config.Pass,
+		Swarm:      config.Swarm,
+		DefaultEnb: config.DefaultEnb,
 	}
 	docker.Client, err = config.createClient()
 	if err != nil {
@@ -186,7 +189,7 @@ func (cnf *DockerConfig) createClient() (*docker.Client, error) {
 	return dkrClient, nil
 }
 
-func (dkr *Docker) dockerGetApps() map[string]*App{
+func (dkr *Docker) dockerGetApps() map[string]*App {
 	containers, err := dkr.getContainerList()
 	if err != nil {
 		return nil
@@ -194,6 +197,7 @@ func (dkr *Docker) dockerGetApps() map[string]*App{
 	apps := make(map[string]*App)
 	for _, container := range containers {
 		app := newApp()
+		app.Enabled = dkr.DefaultEnb
 		var name string
 		if len(container.Names) > 0 {
 			name = container.Names[0][1:]
@@ -210,7 +214,7 @@ func (dkr *Docker) dockerGetApps() map[string]*App{
 	return apps
 }
 
-func (dkr *Docker) swarmGetApps() map[string]*App{
+func (dkr *Docker) swarmGetApps() map[string]*App {
 	services, err := dkr.getServiceList()
 	if err != nil {
 		return nil
@@ -218,6 +222,7 @@ func (dkr *Docker) swarmGetApps() map[string]*App{
 	apps := make(map[string]*App)
 	for _, service := range services {
 		app := newApp()
+		app.Enabled = dkr.DefaultEnb
 		name := service.Spec.Name
 		newName, upName := dkr.UpgradeApp(name, app)
 		if upName {
@@ -271,7 +276,7 @@ func (dkr *Docker) swarmUpgradeApp(matchName string, app *App) (string, bool) {
 	}
 	for _, info := range services {
 		if strings.ToLower(info.Spec.Name) == matchName {
-			lIcon, icex :=  info.Spec.Labels[dockerIconLabel]
+			lIcon, icex := info.Spec.Labels[dockerIconLabel]
 			lURL, urlex := info.Spec.Labels[dockerURLLabel]
 			lEnab, enabex := info.Spec.Labels[dockerEnabledLabel]
 
