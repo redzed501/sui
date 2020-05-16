@@ -14,7 +14,7 @@ build:
   services:
     - name: docker:stable-dind
   only:
-    - master
+    - latest
     - dev
   except:
     - triggers
