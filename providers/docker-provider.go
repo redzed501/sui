@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	swarm "github.com/docker/docker/api/types/swarm"
 	docker "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 )
@@ -32,6 +33,7 @@ type Docker struct {
 	Client *docker.Client
 	User   string
 	Pass   string
+	Swarm bool
 }
 type DockerConfig struct {
 	ConnType string `json:"connection"`
@@ -39,6 +41,7 @@ type DockerConfig struct {
 	ConnURL  string `json:"url"`
 	User     string `json:"user"`
 	Pass     string `json:"pass"`
+	Swarm    bool   `json:"swarm"`
 }
 type DockerContainerInfo struct {
 	ID    string   `json:"Id"`
@@ -55,6 +58,7 @@ type DockerIndividualInfo struct {
 	Name   string                `json:"Names"`
 	Config DockerContainerConfig `json:"Config"`
 }
+
 ////----- end
 
 ////----- Common App Provider Functions --->
@@ -68,6 +72,7 @@ func newDocker(name string) (*Docker, error) {
 		Host: config.ConnURL,
 		User: config.User,
 		Pass: config.Pass,
+		Swarm: config.Swarm,
 	}
 	docker.Client, err = config.createClient()
 	if err != nil {
@@ -124,9 +129,16 @@ func (dkr *Docker) GetApps() map[string]*App {
 // to use
 // Returns true if returning a new suggested app name
 func (dkr *Docker) UpgradeApp(matchName string, app *App) (string, bool) {
+
+	if dkr.Swarm {
+		return dkr.swarmUpgradeApp(matchName, app)
+	} else {
+		return dkr.dockerUpgradeApp(matchName, app)
+	}
+
 	containers, err := dkr.getContainerList()
 	if err != nil {
-		return  "", false
+		return "", false
 	}
 	for _, info := range containers {
 		if len(info.Names) != 0 && info.Names[0][1:] == matchName {
@@ -223,6 +235,74 @@ func (cnf *DockerConfig) createClient() (*docker.Client, error) {
 	return dkrClient, nil
 }
 
+func (dkr *Docker) dockerUpgradeApp(matchName string, app *App) (string, bool) {
+	containers, err := dkr.getContainerList()
+	if err != nil {
+		return "", false
+	}
+	for _, info := range containers {
+		if len(info.Names) != 0 && info.Names[0][1:] == matchName {
+			lIcon, icex := info.Labels[dockerIconLabel]
+			lURL, urlex := info.Labels[dockerURLLabel]
+			lEnab, enabex := info.Labels[dockerEnabledLabel]
+
+			if icex {
+				app.Icon = lIcon
+			}
+			if urlex {
+				app.URL = lURL
+			}
+			if enabex {
+				lEnabB, err := strconv.ParseBool(lEnab)
+				if err == nil {
+					app.Enabled = lEnabB
+				} else {
+					enabex = false
+				}
+			}
+			lName, namex := info.Labels[dockerNameLabel]
+			if namex {
+				return lName, true
+			}
+		}
+	}
+	return "", false
+}
+
+func (dkr *Docker) swarmUpgradeApp(matchName string, app *App) (string, bool) {
+	services, err := dkr.getServiceList()
+	if err != nil {
+		return "", false
+	}
+	for _, info := range services {
+		if strings.ToLower(info.Spec.Name) == matchName {
+			lIcon, icex :=  info.Spec.Labels[dockerIconLabel]
+			lURL, urlex := info.Spec.Labels[dockerURLLabel]
+			lEnab, enabex := info.Spec.Labels[dockerEnabledLabel]
+
+			if icex {
+				app.Icon = lIcon
+			}
+			if urlex {
+				app.URL = lURL
+			}
+			if enabex {
+				lEnabB, err := strconv.ParseBool(lEnab)
+				if err == nil {
+					app.Enabled = lEnabB
+				} else {
+					enabex = false
+				}
+			}
+			lName, namex := info.Spec.Labels[dockerNameLabel]
+			if namex {
+				return lName, true
+			}
+		}
+	}
+	return "", false
+}
+
 func (cnf *DockerConfig) dockerSocketExist() bool {
 	if _, err := os.Stat(cnf.ConnPath); err == nil {
 		return true
@@ -253,6 +333,15 @@ func (dkr *Docker) getContainerList() ([]docker.APIContainers, error) {
 		return nil, err
 	}
 	return containerList, nil
+}
+
+func (dkr *Docker) getServiceList() ([]swarm.Service, error) {
+	services, err := dkr.Client.ListServices(docker.ListServicesOptions{})
+	if err != nil {
+		log.Errorf("failed to fetch docker services list")
+		return nil, err
+	}
+	return services, nil
 }
 
 func (dkr *Docker) getDockerVersion() (string, error) {
