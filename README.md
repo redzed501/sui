@@ -19,81 +19,25 @@ This was designed to work with my compose setup. This setup can be found [here](
 
 This version of SUI is designed to pull the apps list from an external provider.
 
+There are 2 layers of configuration for this dashboard, static and dynamic. Static sets up connections to services such as Docker or Traefik, whereas dynamic uses features such as docker labels to overwrite data received from the App Providers.
+
 Currently supported providers are:
  - `Docker` via socket (`docker`)
  - `Træfik` via API (`traefik`)
 
-### Core Configuration
+A guide on static config - [here](./examples/guide.md)
 
-(example [here](examples/config.json))
+#### Dynamic Config
 
-Copy the example in how bookmarks and search engines are added, it should be pretty simple 👍
+##### Using Docker Labels
 
-For the providers, it is an array of `name`, `type` objects. The type must be one of the types above and the name must be another file in the same dir (excluding the `.json` bit).
-```json
-"appproviders": [
-    { "name": "vps", "type": "traefik" },
-    { "name": "main-traefik", "type": "traefik" }
-  ]
-```
-If you're note using traefik, you can just use a docker provider by itself. 
+If you have added a Docker provider (either by itself or with a traefik provider), you can use docker labels to overwrite values.
 
-#### Provider | Docker
-
-This provider is the simplest to use. Add a file with the same name as you provided in the core config file, but add `.json` to it. Below is an example of a docker provider config that uses the local docker socket, provided you mount the socket to the container.
-
-example:
-```json
-{
-  "connection": "unix",
-  "path": "/var/run/docker.sock"
-}
-
-```
-
-You can then add flags to the containers inn the provided docker instance, such as:
-
-example in compose:
-```yaml
-services:
-   example:
-      container_name: ex
-      image: aservice:latest
-      networks:
-         - traefik-proxy
-      labels:
-         - [TRAEFIK LABELS]
-         - sui.enabled=true
-         - sui.icon=application
-         - sui.name=Other Name
-```
-
-You must of course also mount the docker socket (as read-only).
-Once this has been added, you can add labels to you containers (best via docker-compose files) that modify their sui behavior, for example:
+for example:
  - `sui.enabled=true` will hide the service from the dashboard if false
- - `sui.name=Example` will set the application's name to `Example`
- - `sui.url=https://a.example.tld` will link the application to the given value
+ - `sui.name=Example` will set the application's name to `Example` rather than the containers name
+ - `sui.url=https://a.example.tld` will link the application to the given value rather than the traefik router url
  - `sui.icon=application` will set the apps icon to `application` (see [here](https://materialdesignicons.com/))
-
-#### Provider | Træfik
-
-This provider uses the træfik API to determine what services are running. You can add a træfik provider to you SUI though the configuration JSON, for example:
-
-```json
-{
-  "url": "https://traefik.mymainexample.tld",
-  "user": "myusename",
-  "pass": "supasecure1234",
-  "ignored": ["PROMETHEUS@INTERNAL", "NOOP@INTERNAL", "API@INTERNAL"],
-  "dockers": ["local-docker"]
-}
-```
-
-- `url` specifies the URL of the target træfik instance
-- `ignored` specifies service names to ignore from the apps list
-- `dockers` list of docker type providers. These must be configured like the docker providers mentioned above
-If basic auth is enabled on the Træfik endpoint:
-- `user` and `pass` specify the credentials for basic auth
 
 ### Customization
 

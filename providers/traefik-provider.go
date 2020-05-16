@@ -152,6 +152,11 @@ func loadTraefikConfig(name string) (*TraefikConfig, error) {
 		log.Errorf("config file could not be parsed | %s", configPath)
 		return nil, err
 	}
+	if len(trCnf.URL) > 0 {
+		if trCnf.URL[len(trCnf.URL)-1:] == "/" {
+			trCnf.URL = trCnf.URL[:len(trCnf.URL)-1]
+		}
+	}
 	return trCnf, nil
 }
 ////----- end

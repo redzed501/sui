@@ -3,8 +3,9 @@
   "debug": true,
 
   "appproviders": [
-    { "name": "vps", "type": "traefik" },
-    { "name": "main-traefik", "type": "traefik" }
+    { "name": "local-docker", "type": "docker" },
+    { "name": "remote-traefik", "type": "traefik" },
+    { "name": "random-traefik", "type": "traefik" }
   ],
 
   "engines": {

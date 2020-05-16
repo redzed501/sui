@@ -1,15 +1,15 @@
 package providers
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
+	swarm "github.com/docker/docker/api/types/swarm"
+	docker "github.com/fsouza/go-dockerclient"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,16 +29,21 @@ var (
 
 ////----- Models --->
 type Docker struct {
-	Client *http.Client
-	User   string
-	Pass   string
+	Host       string
+	Client     *docker.Client
+	User       string
+	Pass       string
+	DefaultEnb bool
+	Swarm      bool
 }
 type DockerConfig struct {
-	ConnType string `json:"connection"`
-	ConnPath string `json:"path"`
-	ConnURL  string `json:"url"`
-	User     string `json:"user"`
-	Pass     string `json:"pass"`
+	ConnType   string `json:"connection"`
+	ConnPath   string `json:"path"`
+	ConnURL    string `json:"url"`
+	User       string `json:"user"`
+	Pass       string `json:"pass"`
+	DefaultEnb bool   `json:"default"`
+	Swarm      bool   `json:"swarm"`
 }
 type DockerContainerInfo struct {
 	ID    string   `json:"Id"`
@@ -55,10 +60,6 @@ type DockerIndividualInfo struct {
 	Name   string                `json:"Names"`
 	Config DockerContainerConfig `json:"Config"`
 }
-type DockerVersionInfo struct {
-	Version string `json:"Version"`
-	Os      string `json:"Os"`
-}
 
 ////----- end
 
@@ -70,8 +71,11 @@ func newDocker(name string) (*Docker, error) {
 		return nil, err
 	}
 	docker := Docker{
-		User: config.User,
-		Pass: config.Pass,
+		Host:       config.ConnURL,
+		User:       config.User,
+		Pass:       config.Pass,
+		Swarm:      config.Swarm,
+		DefaultEnb: config.DefaultEnb,
 	}
 	docker.Client, err = config.createClient()
 	if err != nil {
@@ -97,28 +101,11 @@ func toDocker(cnf interface{}) (*Docker, error) {
 // Returns a map of App formatted containers
 func (dkr *Docker) GetApps() map[string]*App {
 
-	containers, err := dkr.getContainerList()
-	if err != nil {
-		return nil
+	if dkr.Swarm {
+		return dkr.swarmGetApps()
 	}
+	return dkr.dockerGetApps()
 
-	apps := make(map[string]*App)
-	for _, container := range containers {
-		app := newApp()
-		var name string
-		if len(container.Names) > 0 {
-			name = container.Names[0][1:]
-		}
-		newName, upName := dkr.UpgradeApp(name, app)
-		if upName {
-			name = newName
-		}
-		if app.Enabled {
-			apps[name] = app
-		}
-	}
-
-	return apps
 }
 
 // UpgradeApp takes an already existing app and replaces data with defined data
@@ -128,35 +115,12 @@ func (dkr *Docker) GetApps() map[string]*App {
 // to use
 // Returns true if returning a new suggested app name
 func (dkr *Docker) UpgradeApp(matchName string, app *App) (string, bool) {
-	info, err := dkr.getContainerInfo(matchName)
-	if err != nil {
-		return "", false
-	}
-	if info != nil {
-		lIcon, icex := info.Config.Labels[dockerIconLabel]
-		lURL, urlex := info.Config.Labels[dockerURLLabel]
-		lEnab, enabex := info.Config.Labels[dockerEnabledLabel]
 
-		if icex {
-			app.Icon = lIcon
-		}
-		if urlex {
-			app.URL = lURL
-		}
-		if enabex {
-			lEnabB, err := strconv.ParseBool(lEnab)
-			if err == nil {
-				app.Enabled = lEnabB
-			} else {
-				enabex = false
-			}
-		}
-		lName, namex := info.Config.Labels[dockerNameLabel]
-		if namex {
-			return lName, true
-		}
+	if dkr.Swarm {
+		return dkr.swarmUpgradeApp(matchName, app)
 	}
-	return "", false
+	return dkr.dockerUpgradeApp(matchName, app)
+
 }
 
 // TestConnection checks to see if the docker client can be communicated with via
@@ -167,7 +131,7 @@ func (dkr *Docker) TestConnection(output bool) bool {
 	if err != nil {
 		return false
 	}
-	log.Debugf("docker version checked | %s", version.Version)
+	log.Debugf("docker version checked | %s", version)
 	return true
 }
 
@@ -201,86 +165,194 @@ func newDockerConfig() *DockerConfig {
 	}
 }
 
-func (cnf *DockerConfig) createClient() (*http.Client, error) {
+func (cnf *DockerConfig) createClient() (*docker.Client, error) {
 	var path string
 	if strings.ToLower(cnf.ConnType) == "unix" {
-		if _, err := os.Stat(cnf.ConnPath); err == nil {
-			log.Debugf("docker socket path found")
-			path = cnf.ConnPath
-		} else if os.IsNotExist(err) {
-			log.Errorf("you must mount the docker socket (%s)", path)
+		if !cnf.dockerSocketExist() {
+			log.Errorf("you must mount the docker socket (%s) to use unix type", path)
 			return nil, fmt.Errorf("docker socket is not mounted (correctly)")
-		} else {
-			log.Errorf("can not find the docker socket (%s)", path)
-			return nil, fmt.Errorf("docker socket not found")
 		}
+		path = fmt.Sprintf("%s://%s", strings.ToLower(cnf.ConnType), cnf.ConnPath)
 	} else if strings.ToLower(cnf.ConnType) == "tcp" {
-		path = cnf.ConnURL
+		if !cnf.dockerTCPOkay() {
+			log.Errorf("you must enter a valid [ip]:[port] to use tcp type docker")
+			return nil, fmt.Errorf("docker host is not valid")
+		}
+		path = fmt.Sprintf("%s://%s", strings.ToLower(cnf.ConnType), cnf.ConnURL)
 	} else {
 		return nil, fmt.Errorf("type must be unix or tcp | given -> %s", cnf.ConnType)
 	}
-	httpClient := http.Client{
-		Transport: &http.Transport{
-			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial(strings.ToLower(cnf.ConnType), path)
-			},
-		},
-	}
-	return &httpClient, nil
-}
-
-func (dkr *Docker) requestFromDocker(path string) (*http.Response, error) {
-	//TODO: support non localhost hosts....
-	path = fmt.Sprintf("http://127.0.0.1/%s/%s", dockerAPIVersion, path)
-	req, err := http.NewRequest("GET", path, nil)
-	if dkr.User != "" {
-		req.SetBasicAuth(dkr.User, dkr.Pass)
-	}
-	response, err := dkr.Client.Do(req)
-	return response, err
-}
-
-func (dkr *Docker) getContainerList() ([]*DockerContainerInfo, error) {
-	response, err := dkr.requestFromDocker("containers/json")
-	if err != nil || response.StatusCode != 200 {
-		log.Errorf("failed to fetch docker container list")
+	dkrClient, err := docker.NewClient(path)
+	if err != nil {
 		return nil, err
 	}
-	var containerList []*DockerContainerInfo
-	err = json.NewDecoder(response.Body).Decode(&containerList)
+	return dkrClient, nil
+}
+
+func (dkr *Docker) dockerGetApps() map[string]*App {
+	containers, err := dkr.getContainerList()
 	if err != nil {
-		log.Errorf("docker container list could not be parsed")
+		return nil
+	}
+	apps := make(map[string]*App)
+	for _, container := range containers {
+		app := newApp()
+		app.Enabled = dkr.DefaultEnb
+		var name string
+		if len(container.Names) > 0 {
+			name = container.Names[0][1:]
+		}
+		newName, upName := dkr.UpgradeApp(name, app)
+		if upName {
+			name = newName
+		}
+		if app.Enabled {
+			apps[name] = app
+		}
+	}
+
+	return apps
+}
+
+func (dkr *Docker) swarmGetApps() map[string]*App {
+	services, err := dkr.getServiceList()
+	if err != nil {
+		return nil
+	}
+	apps := make(map[string]*App)
+	for _, service := range services {
+		app := newApp()
+		app.Enabled = dkr.DefaultEnb
+		name := service.Spec.Name
+		newName, upName := dkr.UpgradeApp(name, app)
+		if upName {
+			name = newName
+		}
+		if app.Enabled {
+			apps[name] = app
+		}
+	}
+	return apps
+}
+
+func (dkr *Docker) dockerUpgradeApp(matchName string, app *App) (string, bool) {
+	containers, err := dkr.getContainerList()
+	if err != nil {
+		return "", false
+	}
+	for _, info := range containers {
+		if len(info.Names) != 0 && info.Names[0][1:] == matchName {
+			lIcon, icex := info.Labels[dockerIconLabel]
+			lURL, urlex := info.Labels[dockerURLLabel]
+			lEnab, enabex := info.Labels[dockerEnabledLabel]
+
+			if icex {
+				app.Icon = lIcon
+			}
+			if urlex {
+				app.URL = lURL
+			}
+			if enabex {
+				lEnabB, err := strconv.ParseBool(lEnab)
+				if err == nil {
+					app.Enabled = lEnabB
+				} else {
+					enabex = false
+				}
+			}
+			lName, namex := info.Labels[dockerNameLabel]
+			if namex {
+				return lName, true
+			}
+		}
+	}
+	return "", false
+}
+
+func (dkr *Docker) swarmUpgradeApp(matchName string, app *App) (string, bool) {
+	services, err := dkr.getServiceList()
+	if err != nil {
+		return "", false
+	}
+	for _, info := range services {
+		if strings.ToLower(info.Spec.Name) == matchName {
+			lIcon, icex := info.Spec.TaskTemplate.ContainerSpec.Labels[dockerIconLabel]
+			lURL, urlex := info.Spec.TaskTemplate.ContainerSpec.Labels[dockerURLLabel]
+			lEnab, enabex := info.Spec.TaskTemplate.ContainerSpec.Labels[dockerEnabledLabel]
+
+			if icex {
+				app.Icon = lIcon
+			}
+			if urlex {
+				app.URL = lURL
+			}
+			if enabex {
+				lEnabB, err := strconv.ParseBool(lEnab)
+				if err == nil {
+					app.Enabled = lEnabB
+				} else {
+					enabex = false
+				}
+			}
+			lName, namex := info.Spec.TaskTemplate.ContainerSpec.Labels[dockerNameLabel]
+			if namex {
+				return lName, true
+			}
+		}
+	}
+	return "", false
+}
+
+func (cnf *DockerConfig) dockerSocketExist() bool {
+	if _, err := os.Stat(cnf.ConnPath); err == nil {
+		return true
+	}
+	return false
+}
+
+func (cnf *DockerConfig) dockerTCPOkay() bool {
+	parts := strings.Split(cnf.ConnURL, ":")
+	log.Infoln(parts)
+	if len(parts) != 2 {
+		return false
+	}
+	ip := net.ParseIP(parts[0])
+	if ip != nil {
+		_, err := strconv.ParseInt(parts[1], 10, 32)
+		if err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (dkr *Docker) getContainerList() ([]docker.APIContainers, error) {
+	containerList, err := dkr.Client.ListContainers(docker.ListContainersOptions{})
+	if err != nil {
+		log.Errorf("failed to fetch docker container list")
 		return nil, err
 	}
 	return containerList, nil
 }
 
-func (dkr *Docker) getContainerInfo(name string) (*DockerIndividualInfo, error) {
-	response, err := dkr.requestFromDocker(fmt.Sprintf("containers/%s/json", name))
-	if err != nil || response.StatusCode != 200 {
-		//log.Errorf("failed to fetch docker container info")
-		return nil, err
-	}
-	var containerInfo *DockerIndividualInfo
-	err = json.NewDecoder(response.Body).Decode(&containerInfo)
+func (dkr *Docker) getServiceList() ([]swarm.Service, error) {
+	services, err := dkr.Client.ListServices(docker.ListServicesOptions{})
 	if err != nil {
-		log.Errorf("docker container info could not be parsed")
+		log.Errorf("failed to fetch docker services list")
 		return nil, err
 	}
-	return containerInfo, nil
+	return services, nil
 }
 
-func (dkr *Docker) getDockerVersion() (*DockerVersionInfo, error) {
-	response, err := dkr.requestFromDocker("version")
-	if err != nil || response.StatusCode != 200 {
-		log.Errorf("failed to fetch docker version")
-		return nil, err
-	}
-	var versionInfo *DockerVersionInfo
-	err = json.NewDecoder(response.Body).Decode(&versionInfo)
+func (dkr *Docker) getDockerVersion() (string, error) {
+	versionData, err := dkr.Client.Version()
 	if err != nil {
-		log.Errorf("docker version info could not be parsed\n")
-		return nil, err
+		log.Errorf("failed to fetch docker version")
+		return "", err
 	}
-	return versionInfo, nil
+	version := versionData.Get("Version")
+	if version == "" {
+		return "", fmt.Errorf("docker version info not found")
+	}
+	return version, nil
 }
