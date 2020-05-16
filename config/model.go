@@ -28,7 +28,7 @@ type AppProviderConfig struct {
 
 func NewConfig() *Config {
 	return &Config{
-		AppTitle:       "SUI",
+		AppTitle:       "SUI Dashboard",
 		AppRefresh:     300,
 		SearchEngines:  make(map[string]*search.SearchEngine),
 		BookmarkCats:   make(map[string]*[]bookmarks.Bookmark),

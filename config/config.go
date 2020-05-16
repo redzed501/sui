@@ -45,6 +45,10 @@ func IsDebug() bool {
 	return cnf.Debug
 }
 
+func GetAppTitle() string {
+	return cnf.AppTitle
+}
+
 func GetAppProviderConfigs() []AppProviderConfig {
 	return cnf.ProviderConfigs
 }

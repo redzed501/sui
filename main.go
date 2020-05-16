@@ -31,6 +31,7 @@ func main() {
 	log.Debugf("parsed Config\n")
 
 	indexData = NewIndexData()
+	indexData.AppTitle = config.GetAppTitle()
 
 	addAppProviders()
 	addSearchEngines()

@@ -8,6 +8,7 @@ import (
 
 // IndexData is the data to be used in the template file
 type IndexData struct {
+	AppTitle      string
 	AppProviders  map[string]*providers.AppProvider
 	Bookmarks     map[string]*[]bookmarks.Bookmark
 	SearchEngines map[string]*search.SearchEngine
