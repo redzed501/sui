@@ -98,28 +98,11 @@ func toDocker(cnf interface{}) (*Docker, error) {
 // Returns a map of App formatted containers
 func (dkr *Docker) GetApps() map[string]*App {
 
-	containers, err := dkr.getContainerList()
-	if err != nil {
-		return nil
+	if dkr.Swarm {
+		return dkr.swarmGetApps()
 	}
+	return dkr.dockerGetApps()
 
-	apps := make(map[string]*App)
-	for _, container := range containers {
-		app := newApp()
-		var name string
-		if len(container.Names) > 0 {
-			name = container.Names[0][1:]
-		}
-		newName, upName := dkr.UpgradeApp(name, app)
-		if upName {
-			name = newName
-		}
-		if app.Enabled {
-			apps[name] = app
-		}
-	}
-
-	return apps
 }
 
 // UpgradeApp takes an already existing app and replaces data with defined data
@@ -132,41 +115,9 @@ func (dkr *Docker) UpgradeApp(matchName string, app *App) (string, bool) {
 
 	if dkr.Swarm {
 		return dkr.swarmUpgradeApp(matchName, app)
-	} else {
-		return dkr.dockerUpgradeApp(matchName, app)
 	}
+	return dkr.dockerUpgradeApp(matchName, app)
 
-	containers, err := dkr.getContainerList()
-	if err != nil {
-		return "", false
-	}
-	for _, info := range containers {
-		if len(info.Names) != 0 && info.Names[0][1:] == matchName {
-			lIcon, icex := info.Labels[dockerIconLabel]
-			lURL, urlex := info.Labels[dockerURLLabel]
-			lEnab, enabex := info.Labels[dockerEnabledLabel]
-
-			if icex {
-				app.Icon = lIcon
-			}
-			if urlex {
-				app.URL = lURL
-			}
-			if enabex {
-				lEnabB, err := strconv.ParseBool(lEnab)
-				if err == nil {
-					app.Enabled = lEnabB
-				} else {
-					enabex = false
-				}
-			}
-			lName, namex := info.Labels[dockerNameLabel]
-			if namex {
-				return lName, true
-			}
-		}
-	}
-	return "", false
 }
 
 // TestConnection checks to see if the docker client can be communicated with via
@@ -233,6 +184,50 @@ func (cnf *DockerConfig) createClient() (*docker.Client, error) {
 		return nil, err
 	}
 	return dkrClient, nil
+}
+
+func (dkr *Docker) dockerGetApps() map[string]*App{
+	containers, err := dkr.getContainerList()
+	if err != nil {
+		return nil
+	}
+	apps := make(map[string]*App)
+	for _, container := range containers {
+		app := newApp()
+		var name string
+		if len(container.Names) > 0 {
+			name = container.Names[0][1:]
+		}
+		newName, upName := dkr.UpgradeApp(name, app)
+		if upName {
+			name = newName
+		}
+		if app.Enabled {
+			apps[name] = app
+		}
+	}
+
+	return apps
+}
+
+func (dkr *Docker) swarmGetApps() map[string]*App{
+	services, err := dkr.getServiceList()
+	if err != nil {
+		return nil
+	}
+	apps := make(map[string]*App)
+	for _, service := range services {
+		app := newApp()
+		name := service.Spec.Name
+		newName, upName := dkr.UpgradeApp(name, app)
+		if upName {
+			name = newName
+		}
+		if app.Enabled {
+			apps[name] = app
+		}
+	}
+	return apps
 }
 
 func (dkr *Docker) dockerUpgradeApp(matchName string, app *App) (string, bool) {
