@@ -276,9 +276,9 @@ func (dkr *Docker) swarmUpgradeApp(matchName string, app *App) (string, bool) {
 	}
 	for _, info := range services {
 		if strings.ToLower(info.Spec.Name) == matchName {
-			lIcon, icex := info.Spec.Labels[dockerIconLabel]
-			lURL, urlex := info.Spec.Labels[dockerURLLabel]
-			lEnab, enabex := info.Spec.Labels[dockerEnabledLabel]
+			lIcon, icex := info.Spec.TaskTemplate.ContainerSpec.Labels[dockerIconLabel]
+			lURL, urlex := info.Spec.TaskTemplate.ContainerSpec.Labels[dockerURLLabel]
+			lEnab, enabex := info.Spec.TaskTemplate.ContainerSpec.Labels[dockerEnabledLabel]
 
 			if icex {
 				app.Icon = lIcon
@@ -294,7 +294,7 @@ func (dkr *Docker) swarmUpgradeApp(matchName string, app *App) (string, bool) {
 					enabex = false
 				}
 			}
-			lName, namex := info.Spec.Labels[dockerNameLabel]
+			lName, namex := info.Spec.TaskTemplate.ContainerSpec.Labels[dockerNameLabel]
 			if namex {
 				return lName, true
 			}
