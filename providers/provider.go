@@ -9,6 +9,9 @@ import (
 
 const (
 	labelRoot string = "sui"
+
+	maxDisplayNameLen int = 18
+	maxDisplayURLLen int = 25
 )
 
 func NewAppProvider(name string, ptype string) (*AppProvider, error) {
@@ -34,8 +37,10 @@ func NewAppProvider(name string, ptype string) (*AppProvider, error) {
 
 func newApp() *App {
 	return &App{
+		DisplayName: "",
 		Icon:    "application",
-		URL:     "youtube.com/watch?v=dQw4w9WgXcQ",
+		DisplayURL: "no url",
+		URL:     "/",
 		Enabled: true,
 		Added:   time.Now(),
 	}
@@ -60,6 +65,19 @@ func (ap *AppProvider) RefreshApps() error {
 		break
 	}
 	return nil
+}
+
+func (app *App) FormatApp(name string) {
+	if len(name) > maxDisplayNameLen {
+		app.DisplayName = name[:(maxDisplayNameLen-3)] + "..."
+	} else {
+		app.DisplayName = name
+	}
+	if len(app.URL) > maxDisplayURLLen {
+		app.DisplayURL = app.URL[:(maxDisplayURLLen-3)] + "..."
+	} else {
+		app.DisplayURL = app.URL
+	}
 }
 
 func getDefaultIcon(name string) string {

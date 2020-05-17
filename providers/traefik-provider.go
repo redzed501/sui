@@ -119,6 +119,7 @@ func (tr *Traefik) GetApps() map[string]*App {
 			}
 		}
 		if app.Enabled {
+			app.FormatApp(name)
 			apps[name] = app
 		}
 	}

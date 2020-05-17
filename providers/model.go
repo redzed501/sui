@@ -15,8 +15,10 @@ type AppProvider struct {
 }
 
 type App struct {
-	Icon    string
-	URL     string
-	Enabled bool
-	Added   time.Time
+	DisplayName string
+	Icon        string
+	URL         string
+	DisplayURL  string
+	Enabled     bool
+	Added       time.Time
 }
