@@ -34,6 +34,8 @@ var iconDefault = map[string]string{
 		"olaris": "play-box",
 		"jellyfin": "play-box",
 		"portainer": "docker",
+		"containers": "docker",
+		"docker": "docker",
 		"traefik-sso-fw": "lock",
 		"gotify": "bell",
 		"notify": "bell",
