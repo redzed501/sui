@@ -119,7 +119,10 @@ func (tr *Traefik) GetApps() map[string]*App {
 			}
 		}
 		if app.Enabled {
-			app.FormatApp(name)
+
+			app.formatDisplayURL(maxDisplayURLLen)
+			app.formatDisplayName(name, maxDisplayNameLen)
+			
 			apps[name] = app
 		}
 	}
@@ -153,10 +156,8 @@ func loadTraefikConfig(name string) (*TraefikConfig, error) {
 		log.Errorf("config file could not be parsed | %s", configPath)
 		return nil, err
 	}
-	if len(trCnf.URL) > 0 {
-		if trCnf.URL[len(trCnf.URL)-1:] == "/" {
-			trCnf.URL = trCnf.URL[:len(trCnf.URL)-1]
-		}
+	if strings.HasSuffix(trCnf.URL, "/")  {
+		trCnf.URL = trCnf.URL[:len(trCnf.URL)-1]
 	}
 	return trCnf, nil
 }

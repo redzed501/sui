@@ -9,9 +9,6 @@ import (
 
 const (
 	labelRoot string = "sui"
-
-	maxDisplayNameLen int = 16
-	maxDisplayURLLen int = 19
 )
 
 func NewAppProvider(name string, ptype string) (*AppProvider, error) {
@@ -65,19 +62,6 @@ func (ap *AppProvider) RefreshApps() error {
 		break
 	}
 	return nil
-}
-
-func (app *App) FormatApp(name string) {
-	if len(name) > maxDisplayNameLen {
-		app.DisplayName = name[:(maxDisplayNameLen-3)] + "..."
-	} else {
-		app.DisplayName = name
-	}
-	if len(app.URL) > maxDisplayURLLen {
-		app.DisplayURL = app.URL[:(maxDisplayURLLen-3)] + "..."
-	} else {
-		app.DisplayURL = app.URL
-	}
 }
 
 func getDefaultIcon(name string) string {

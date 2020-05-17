@@ -207,7 +207,8 @@ func (dkr *Docker) dockerGetApps() map[string]*App {
 			name = newName
 		}
 		if app.Enabled {
-			app.FormatApp(name)
+			app.formatDisplayURL(maxDisplayURLLen)
+			app.formatDisplayName(name, maxDisplayNameLen)
 			apps[name] = app
 		}
 	}
@@ -230,7 +231,10 @@ func (dkr *Docker) swarmGetApps() map[string]*App {
 			name = newName
 		}
 		if app.Enabled {
-			app.FormatApp(name)
+			
+			app.formatDisplayURL(maxDisplayURLLen)
+			app.formatDisplayName(name, maxDisplayNameLen)
+
 			apps[name] = app
 		}
 	}
