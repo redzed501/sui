@@ -17,14 +17,13 @@ func (app *App) fixURL() {
 }
 
 func (app *App) formatDisplayURL(maxLength int) {
+	app.fixURL()
 	app.DisplayURL = app.URL
 	if strings.HasPrefix(app.URL, "https://") || strings.HasPrefix(app.URL, "http://") {
 		app.DisplayURL = strings.Split(app.URL, "://")[1]
 	}
 	if len(app.DisplayURL) > maxLength {
-		app.DisplayURL = fmt.Sprintf("%s...", app.URL[:(maxLength-3)])
-	} else {
-		app.DisplayURL = app.URL
+		app.DisplayURL = fmt.Sprintf("%s...", app.DisplayURL[:(maxLength-3)])
 	}
 }
 
