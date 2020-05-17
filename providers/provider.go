@@ -10,8 +10,8 @@ import (
 const (
 	labelRoot string = "sui"
 
-	maxDisplayNameLen int = 18
-	maxDisplayURLLen int = 25
+	maxDisplayNameLen int = 16
+	maxDisplayURLLen int = 19
 )
 
 func NewAppProvider(name string, ptype string) (*AppProvider, error) {
