@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{.AppTitle}}</title>
+    <title>{{ .AppTitle }}</title>
     <meta charset="utf-8">
     <meta http-equiv="Default-Style" content="">
     <meta content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport" />
     <link type="text/css" rel="stylesheet" href="/static/css/styles.css"  media="screen,projection"/>
     <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700,900" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.1.1/handlebars.min.js"></script>
     <script src="https://code.iconify.design/1/1.0.0-rc7/iconify.min.js"></script>
 </head>
 
@@ -47,12 +45,12 @@
                         <th>Website</th>
                         <th>Prefix</th>
                     </tr>
-                    {{range $SName, $SEngine := .SearchEngines}}
+                    {{ range $SName, $SEngine := .SearchEngines }}
                     <tr>
-                        <td><a href="{{$SEngine.URL}}">{{$SName}}</a></td>
-                        <td>"/{{$SEngine.Prefix}}"</td>
+                        <td><a href="{{ $SEngine.URL }}">{{ $SName }}</a></td>
+                        <td>"/{{ $SEngine.Prefix }}"</td>
                     </tr>
-                    {{end}}
+                    {{ end }}
                 </table>
             </section>
 
@@ -61,63 +59,61 @@
                 <a href="https://materialdesignicons.com/"><span class="iconify" data-icon="mdi-material-design"></a></span>
             </header>
         </div>
-    </section>    
+    </section>
 
     <main id="container" class="fade">
 
         <section id="search">
             <input name="keywords" type="text" id="keywords" size="50" spellcheck="false" autofocus="true" onkeydown="handleKeyPress(event)">
         </section>
-            
+
         <section id="header">
             <h2 id="header_date"></h2>
             <h1 id="header_greet"></h1>
         </section>
 
-        {{range $PName, $Provider := .AppProviders}}
+        {{ range $PName, $Provider := .AppProviders }}
         {{ if $Provider.Protected }}
-        {{else}}
+        {{ else }}
         <section id="apps">
-            <!-- <script type="text/handlebars-template" id="apps-template"></script> -->
-            <h3>{{$PName}}</h3>
+            <h3>{{ $PName }}</h3>
             <div id="apps_loop">
-                {{range $ATitle, $App := $Provider.Apps}}
+                {{ range $ATitle, $App := $Provider.Apps }}
                     {{ if $App.Enabled }}
                     <div class="apps_item">
                         <div class="apps_icon">
-                            <span class="iconify icon" data-icon="mdi-{{$App.Icon}}"></span>
+                            <span class="iconify icon" data-icon="mdi-{{ $App.Icon }}"></span>
                         </div>
                         <div class="apps_text">
-                            <a href="{{$App.URL}}" title="{{$ATitle}}">{{$App.DisplayName}}</a>
-                            <a href="{{$App.URL}}" title="{{$App.URL}}"><span>{{$App.DisplayURL}}</span></a>
+                            <a href="{{ $App.URL }}" title="{{ $ATitle }}">{{ $App.DisplayName }}</a>
+                            <a href="{{ $App.URL }}" title="{{ $App.URL }}"><span>{{ $App.DisplayURL }}</span></a>
                         </div>
                     </div>
-                    {{else}}
-                    {{end}}
-                {{end}}
+                    {{ else }}
+                    {{ end }}
+                {{ end }}
             </div>
         </section>
-        {{end}}
-        {{end}}
+        {{ end }}
+        {{ end }}
 
+        {{ if .Bookmarks }}
         <section id="links">
-            <!-- <script type="text/handlebars-template" id="links-template"> -->
             <h3>Bookmarks</h3>
             <div id="links_loop">
-                {{range $CatName, $Bmks := .Bookmarks}}
+                {{ range $CatName, $Bmks := .Bookmarks }}
                     <div id="links_item">
-                        <h4>{{$CatName}}</h4>
+                        <h4>{{ $CatName }}</h4>
                         {{range $Bmks}}
-                            <a href="{{.URL}}" class="theme_color-border theme_text-select">{{.Name}}</a>
-                        {{end}}
+                            <a href="{{ .URL }}" class="theme_color-border theme_text-select">{{ .Name }}</a>
+                        {{ end }}
                     </div>
-                {{end}}
-            </div>    
-            </script>
+                {{ end }}
+            </div>
         </section>
+        {{ end }}
 
 
-        
     </main>
 
     <div id="modal_init">
@@ -129,6 +125,6 @@
     <script src="/static/js/script.js" type="text/javascript"></script>
     <script src="/js/search.js" type="text/javascript"></script>
     <script src="/static/js/themer.js" type="text/javascript"></script>
-    
+
 </body>
 </html>
