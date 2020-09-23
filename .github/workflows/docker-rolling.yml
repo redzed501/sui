@@ -60,3 +60,7 @@ jobs:
           no-cache: false
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
+          labels: |
+            dev.sui.image.title=${{ github.event.repository.name }}
+            dev.sui.image.description=${{ github.event.repository.description }}
+            dev.sui.image.url=${{ github.event.repository.html_url }}
