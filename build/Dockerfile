@@ -1,5 +1,5 @@
 FROM golang:alpine as builder
-LABEL maintainer="Will Fantom"
+LABEL maintainer="Will Fantom <willfantom@gmail.com>"
 RUN apk add --no-cache git
 COPY ./go.mod /app/go.mod
 WORKDIR /app
