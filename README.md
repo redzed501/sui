@@ -1,6 +1,8 @@
 ## SUI
 *a startpage for your server and / or new tab page*
 
+> This fork provides mechanisms for self-population: using Docker or Træfik as a source
+
 ![screenshot](https://i.imgur.com/J4d7Q3D.png)
 
 [More screenshots](https://imgur.com/a/FDVRIyw)
@@ -10,6 +12,11 @@
 #### Prerequisites:
  - Docker: [Linux](https://docs.docker.com/install/linux/docker-ce/debian/), [Mac](https://hub.docker.com/editions/community/docker-ce-desktop-mac), [Windows](https://hub.docker.com/editions/community/docker-ce-desktop-windows)
  - [Docker-compose](https://docs.docker.com/compose/install/) 
+
+  - The Docker images are available on Docker Hub and the GitHub container registry
+    - `ghcr.io/willfantom/sui:latest` or `docker.io/willfantom/sui:latest`
+
+  - Images are available for `arm` too for deployment on raspberry pi. 
 
 ### Shameless Plug
 
