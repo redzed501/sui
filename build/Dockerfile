@@ -8,7 +8,7 @@ COPY . /app/
 WORKDIR /app
 RUN CGO_ENABLED=0 go build -o sui .
 
-FROM alpine
+FROM scratch
 COPY ./templates /app/templates
 COPY ./assets /app/assets
 COPY --from=builder /app/sui /app/
