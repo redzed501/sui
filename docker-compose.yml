@@ -4,9 +4,9 @@ services:
   sui:
     container_name: sui
     restart: unless-stopped
-    image: willfantom/sui:dev
+    image: willfantom/sui
     ports:
-      - 8080:6999
+      - 6999:6999
     volumes:
       - ./configs:/sui
       - /var/run/docker.sock:/var/run/docker.sock:ro
